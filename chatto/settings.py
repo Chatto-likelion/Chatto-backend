@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'account',
     'business',
     'play',
-    "corsheaders",
+
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -61,23 +62,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "corsheaders.middleware.CorsMiddleware", ##추가
+    'corsheaders.middleware.CorsMiddleware',
 ]
-
-CORS_ALLOWED_ORIGINS= [ # (헤더) Access-Control-Allow-Origin 에 담을 주소들
-  'http://127.0.0.1:3000', 
-  'http://localhost:3000',
-  'http://localhost:5173',
-]
-#CORS_ALLOW_CREDENTIALS = True # cookie를 주고받으려면 얘를 True로 설정해야 해요.
-CORS_ALLOW_HEADERS = (
-    "accept",
-    "authorization",
-    "content-type",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-)
 
 ROOT_URLCONF = 'chatto.urls'
 
@@ -157,3 +143,8 @@ REST_FRAMEWORK = {
     )
 }
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True
