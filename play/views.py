@@ -144,10 +144,10 @@ class ChatAnalyzeView(APIView):
 
         result = ResultPlayChem.objects.create(
             content=analysis_result_text,
-            is_saved=1,
+            is_saved=0,
             analysis_date=timezone.now().date(),
             analysis_type="상황 기반 분석",
-            chat_id_play_chem=chat.chat_id_play_chem
+            chat_id_play_chem=chat
         )
 
         return Response({
@@ -155,3 +155,41 @@ class ChatAnalyzeView(APIView):
             "content": result.content,
             "analysis_type": result.analysis_type
         }, status=status.HTTP_201_CREATED)
+
+
+class AnalysisListView(APIView):
+    def get(self, request, user_id):
+        analyses = ResultPlayChem.objects.filter(chat_id_play_chem__user_id=user_id)
+        content = [
+            {
+                "result_id": analysis.result_id_play_chem,
+                "content": analysis.content,
+                "analysis_type": analysis.analysis_type
+            } for analysis in analyses
+        ]
+        return Response(content, status=status.HTTP_200_OK)
+
+
+class AnalysisDetailView(APIView):
+    def get(self, request, result_id):
+        try:
+            analysis = ResultPlayChem.objects.get(result_id_play_chem=result_id)
+        except ResultPlayChem.DoesNotExist:
+            return Response({"detail": "Analysis not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        content = {
+            "result_id": analysis.result_id_play_chem,
+            "content": analysis.content,
+            "analysis_type": analysis.analysis_type,
+            "analysis_date": analysis.analysis_date
+        }
+        return Response(content, status=status.HTTP_200_OK)
+    
+    def delete(self, request, result_id):
+        try:
+            analysis = ResultPlayChem.objects.get(result_id_play_chem=result_id)
+        except ResultPlayChem.DoesNotExist:
+            return Response({"detail": "Analysis not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        analysis.delete()
+        return Response({"detail": "Analysis deleted successfully."}, status=status.HTTP_204_NO_CONTENT)

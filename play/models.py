@@ -19,7 +19,13 @@ class ResultPlayChem(models.Model):
     is_saved = models.IntegerField(verbose_name="저장여부")
     analysis_date = models.DateTimeField(verbose_name="분석날짜", default=timezone.now)
     analysis_type = models.CharField(max_length=100, verbose_name="분석종류")
-    chat_id_play_chem = models.IntegerField(verbose_name="채팅번호")
-
+    chat_id_play_chem = models.ForeignKey(
+        ChatsPlayChem,
+        on_delete=models.CASCADE,
+        db_column='chat_id_play_chem',
+        related_name='results',
+        verbose_name="채팅번호"
+    )
+    
     def __str__(self):
         return f"{self.result_id_play_chem}"
