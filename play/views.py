@@ -7,6 +7,24 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.parsers import MultiPartParser, FormParser
 
+import re
+
+def extract_chat_title(path: str) -> str:
+    """
+    텍스트 파일 path의 첫 줄에서
+    “~님과” 앞부분만 가져옵니다.
+    """
+    with open(path, 'r', encoding='utf-8') as f:
+        first_line = f.readline().strip()  # ex: "🦁멋사 13기 잡담방🦁 님과 카카오톡 대화"
+    
+    # '(.*?)' : 가능한 한 짧게 매칭, '님과' 앞까지 캡쳐
+    match = re.match(r'^(.*?)\s*님과', first_line)
+    if match:
+        return match.group(1)
+    else:
+        # “님과” 패턴이 없으면 줄 전체를 리턴하거나 빈 문자열
+        return first_line
+
 
 class ChatView(APIView):
     parser_classes = [MultiPartParser, FormParser]  # 반드시 필요
@@ -47,6 +65,10 @@ class ChatView(APIView):
             uploaded_at=timezone.now(),
             user_id=user_id
         )
+
+        file_path = chat.file.path
+        chat.title = extract_chat_title(file_path)
+        chat.save()
 
         return Response({
             "chat_id": chat.chat_id_play_chem,
@@ -193,3 +215,4 @@ class AnalysisDetailView(APIView):
 
         analysis.delete()
         return Response({"detail": "Analysis deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+    
