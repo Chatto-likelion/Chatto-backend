@@ -15,5 +15,9 @@ class SignInRequestSerializer(serializers.Serializer):
     password = serializers.CharField()
 
 
-
+class ProfileEditRequestSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    email = serializers.CharField()
+    phone = serializers.CharField()
+    password = serializers.CharField()
     
