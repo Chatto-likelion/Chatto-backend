@@ -10,7 +10,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.contrib.auth import login
 
-from account.request_serializers import SignInRequestSerializer, SignUpRequestSerializer
+from account.request_serializers import SignInRequestSerializer, SignUpRequestSerializer, ProfileEditRequestSerializer
 
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import logout
@@ -18,6 +18,7 @@ from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.authentication import SessionAuthentication
+
 
 from .serializers import (
     UserSerializer,
@@ -111,3 +112,54 @@ class LogoutView(APIView):
         response = Response(data, status=status.HTTP_200_OK)
         response.delete_cookie('sessionid')
         return response
+    
+
+class ProfileView(APIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_id="프로필 조회",
+        operation_description="로그인한 사용자의 프로필을 조회합니다.",
+        responses={200: UserProfileSerializer, 400: "Bad_Request", 401: "Unauthorized", 404: "Not_Found"},
+    )
+    def get(self, request, user_id):
+        try:
+            user_profile = UserProfile.objects.get(user_id=user_id)
+            user_profile_serializer = UserProfileSerializer(instance=user_profile)
+            return Response(user_profile_serializer.data, status=status.HTTP_200_OK)
+        except UserProfile.DoesNotExist:
+            return Response(
+                {"message": "UserProfile does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+    @swagger_auto_schema(
+        operation_id = "프로필수정",
+        operation_description = "로그인한 사용자의 프로필을 수정합니다.",
+        request_body = ProfileEditRequestSerializer,
+        responses={200: UserProfileSerializer, 400: "Bad_Request", 401: "Unauthorized", 404: "Not_Found"},
+    )
+    def put(self, request, user_id):
+        user_profile = UserProfile.objects.get(user_id=user_id)
+        user = User.objects.get(id=user_id)
+        if not user:
+            return Response(
+                {"message": "User does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if not user_profile:
+            return Response(
+                {"message": "UserProfile does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+        user.username = request.data.get("username")
+        user.email = request.data.get("email")
+        user.set_password(request.data.get("password"))
+        user_profile.phone = request.data.get("phone")
+        user_profile.save()
+        user.save()
+
+        user_profile_serializer = UserProfileSerializer(instance=user_profile)
+        return Response(user_profile_serializer.data, status=status.HTTP_200_OK)
