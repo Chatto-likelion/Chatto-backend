@@ -13,3 +13,14 @@ class ListResponseSerializer(serializers.Serializer):
 
 class AnalyseResponseSerializer(serializers.Serializer):
     result_id_bus_contrib = serializers.IntegerField()
+
+class AllResultSerializer(serializers.Serializer):
+    result_id_bus_contrib = serializers.IntegerField()
+    analysis_date = serializers.DateField()
+    content = serializers.CharField()
+    analysis_type = serializers.CharField(max_length=255)
+    analysis_result = serializers.CharField()
+    chat_id_bus_contrib = serializers.IntegerField()
+
+class DetailResultSerializer(serializers.Serializer):
+    content = serializers.CharField()

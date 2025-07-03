@@ -12,6 +12,7 @@ from django.contrib.auth import login
 
 from business.request_serializers import ChatUploadRequestSerializer, ChatAnalysisRequestSerializer
 from business.serializers import UploadResponseSerializer, ListResponseSerializer, UploadResponseSerializer, AnalyseResponseSerializer
+from business.serializers import AllResultSerializer , DetailResultSerializer
 from business.models import Chat
 
 from rest_framework.permissions import IsAuthenticated
@@ -153,3 +154,57 @@ class BusChatAnalyzeView(APIView):
         return Response({
             "result_id_bus_contrib": result.result_id_bus_contrib,
         }, status=status.HTTP_201_CREATED) 
+
+class BusResultListView(APIView):
+
+    @swagger_auto_schema(
+        operation_id="채팅 분석",
+        operation_description="채팅 데이터를 분석합니다.",
+        responses={200: AllResultSerializer, 404: "Not Found", 400: "Bad Request"},
+    )
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+            results = ResultBusContrib.objects.filter(chat_id_bus_contrib__user_id=user)
+
+            result_data = [{"result_id_bus_contrib": result.result_id_bus_contrib,
+                            "analysis_date": result.analysis_date,
+                            "content": result.content,
+                            "analysis_type": result.analysis_type,
+                            "analysis_date": result.analysis_date} for result in results]
+            return Response(result_data, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+class BusResultDetailView(APIView):
+
+    @swagger_auto_schema(
+        operation_id="분석 결과 조회",
+        operation_description="특정 분석 결과를 조회합니다.",
+        responses={200: DetailResultSerializer, 404: "Not Found", 400: "Bad Request"},
+    )
+    def get(self, request, result_id):
+        try:
+            result = ResultBusContrib.objects.get(result_id_bus_contrib=result_id)
+            
+            return Response({"content": result.content}, status=status.HTTP_200_OK)
+        except ResultBusContrib.DoesNotExist:
+            return Response({"error": "Analysis result not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+    @swagger_auto_schema(
+        operation_id="분석 결과 삭제",
+        operation_description="특정 분석 결과를 삭제합니다.",
+        responses={204: "No Content", 404: "Not Found"},
+    )
+    def delete(self, request, result_id):
+        try:
+            result = ResultBusContrib.objects.get(result_id_bus_contrib=result_id)
+            result.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ResultBusContrib.DoesNotExist:
+            return Response({"error": "Analysis result not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+
+
+        
+
