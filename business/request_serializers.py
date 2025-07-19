@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 class ChatUploadRequestSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField()
     file = serializers.FileField()
 
 class ChatAnalysisRequestSerializer(serializers.Serializer):

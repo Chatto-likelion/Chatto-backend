@@ -168,3 +168,18 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN': 'access_token',  # 🔹 Access Token의 이름 지정
     'REFRESH_TOKEN': 'refresh_token',  # 🔹 Refresh Token의 이름 지정
 }
+
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False, # swagger가 기본으로 사용하는 session auth를 사용하지 않음
+    'SECURITY_DEFINITIONS': {
+        'BearerAuth': { # bearer 토큰을 헤더의 Authorization에 담아서 보냄
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': "JWT Token"
+        }
+    },
+    'SECURITY_REQUIREMENTS': [{
+        'BearerAuth': []
+    }]
+}

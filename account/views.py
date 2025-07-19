@@ -27,7 +27,8 @@ from .serializers import (
 from .models import UserProfile
 
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from django.utils import timezone
 
 def set_token_on_response_cookie(user, status_code):
     token = RefreshToken.for_user(user)
@@ -119,6 +120,7 @@ class LogOutView(APIView):
             return Response(
                 {"detail": "please signin again."}, status=status.HTTP_401_UNAUTHORIZED
             )
+
         
         response = Response(status=status.HTTP_204_NO_CONTENT)
         response.delete_cookie("access_token")
