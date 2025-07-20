@@ -1,14 +1,12 @@
 from django.shortcuts import render
 
 # Create your views here.
-from django.contrib.auth.models import User
-from django.contrib import auth
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from django.contrib.auth import login
 
 from .request_serializers import (
     ChatUploadRequestSerializerBus,
@@ -21,13 +19,6 @@ from .serializers import (
 )
 
 from .models import ChatBus, ResultBusContrib
-
-from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import logout
-
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.authentication import SessionAuthentication
 
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -84,10 +75,7 @@ class BusChatView(APIView):
             author = request.user
             
             if not author.is_authenticated:
-                return Response(
-                    {"error": "User not authenticated"},
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
+                return Response(status=status.HTTP_401_UNAUTHORIZED,)
 
             # DB에 먼저 저장해서 경로를 얻는다
             chat = ChatBus.objects.create(
@@ -123,17 +111,11 @@ class BusChatView(APIView):
     def get(self, request):
         author = request.user
         if not author.is_authenticated:
-            return Response(
-                {"error": "User not authenticated"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         chats = ChatBus.objects.filter(user=author)
         if not chats:
-            return Response(
-                {"error": "No chats found for this user"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND)
         
         # Serialize the chat data
         chat_data = [
@@ -155,29 +137,23 @@ class BusChatDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={204: "No Content", 404: "Not Found", 400: "Bad Request", 403: "Forbidden", 401: "Unauthorized"},
+        responses={204: "No Content", 404: "Not Found", 403: "Forbidden", 401: "Unauthorized"},
     )
     def delete(self, request, chat_id):
         # authenticated user check
         author = request.user
         if not author.is_authenticated:
-            return Response(
-                {"error": "User not authenticated"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         
         try:
             chat = ChatBus.objects.get(chat_id=chat_id)
             if chat.user != author:
-                return Response(
-                    {"error": "You do not have permission to delete this chat"},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                return Response(status=status.HTTP_403_FORBIDDEN)
             chat.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except ChatBus.DoesNotExist:
             return Response(
-                {"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_404_NOT_FOUND
             )
 
 
@@ -194,28 +170,23 @@ class BusChatAnalyzeView(APIView):
                 type=openapi.TYPE_STRING),
         ],
         responses={
-            200: AnalyseResponseSerializerBus,
+            201: AnalyseResponseSerializerBus,
             404: "Not Found",
             400: "Bad Request",
-            403: "Forbidden"  # If the user does not have permission to analyze the chat
+            403: "Forbidden",  # If the user does not have permission to analyze the chat
+            401: "Unauthorized",  # If the user is not authenticated
         },
     )
     def post(self, request, chat_id):
         # authenticated user check
         author = request.user
         if not author.is_authenticated:
-            return Response(
-                {"error": "User not authenticated"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED,)
         
         # Validate request data
         serializer = ChatAnalysisRequestSerializerBus(data=request.data)
-        if serializer.is_valid() is False:
-            return Response(
-                {"error": "Invalid request data"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if not serializer.is_valid():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         else:
             people_num = serializer.validated_data["people_num"]
             rel = serializer.validated_data["rel"]
@@ -226,14 +197,9 @@ class BusChatAnalyzeView(APIView):
         try:
             chat = ChatBus.objects.get(chat_id=chat_id)
             if chat.user != author:
-                return Response(
-                    {"error": "You do not have permission to analyze this chat"},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                return Response(status=status.HTTP_403_FORBIDDEN)
         except ChatBus.DoesNotExist:
-            return Response(
-                {"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         analysis_result_text = (
             f"분석 대상 인원: {people_num}명\n"
@@ -269,16 +235,13 @@ class BusResultListView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ResultSerializerBus(many=True), 404: "Not Found", 400: "Bad Request"},
+        responses={200: ResultSerializerBus(many=True), 404: "Not Found", 401: "Unauthorized"},
     )
     def get(self, request):
         # authenticated user check
         author = request.user
         if not author.is_authenticated:
-            return Response(
-                {"error": "User not authenticated"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         
         # Get all analysis results for the logged-in user
         try:
@@ -286,10 +249,7 @@ class BusResultListView(APIView):
             serializer = ResultSerializerBus(results, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ResultBusContrib.DoesNotExist:
-            return Response(
-                {"error": "No analysis results found for this user"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 class BusResultDetailView(APIView):
@@ -303,29 +263,21 @@ class BusResultDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ResultSerializerBus, 404: "Not Found", 400: "Bad Request", 401: "Unauthorized"},
+        responses={200: ResultSerializerBus, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
     )
     def get(self, request, result_id):
         # authenticated user check
         author = request.user
         if not author.is_authenticated:
-            return Response(
-                {"error": "User not authenticated"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultBusContrib.objects.get(result_id=result_id)
             if result.chat.user != author:
-                return Response(
-                    {"error": "You do not have permission to view this analysis result"},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                return Response(status=status.HTTP_403_FORBIDDEN)
             serializer = ResultSerializerBus(result)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ResultBusContrib.DoesNotExist:
-            return Response(
-                {"error": "Analysis result not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
         operation_id="분석 결과 삭제",
@@ -343,20 +295,12 @@ class BusResultDetailView(APIView):
         # authenticated user check
         author = request.user
         if not author.is_authenticated:
-            return Response(
-                {"error": "User not authenticated"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultBusContrib.objects.get(result_id=result_id)
             if result.chat.user != author:
-                return Response(
-                    {"error": "You do not have permission to delete this analysis result"},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                return Response(status=status.HTTP_403_FORBIDDEN)
             result.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except ResultBusContrib.DoesNotExist:
-            return Response(
-                {"error": "Analysis result not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND)

@@ -2,7 +2,6 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.contrib.auth.models import User
-from django.contrib import auth
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,14 +11,6 @@ from django.contrib.auth import login
 
 from account.request_serializers import SignInRequestSerializer, SignUpRequestSerializer, ProfileEditRequestSerializer, TokenRefreshRequestSerializer
 
-from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import logout
-
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.authentication import SessionAuthentication
-
-
 from .serializers import (
     UserSerializer,
     UserProfileSerializer,
@@ -27,8 +18,7 @@ from .serializers import (
 from .models import UserProfile
 
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-from django.utils import timezone
+
 
 def set_token_on_response_cookie(user, status_code):
     token = RefreshToken.for_user(user)
@@ -56,10 +46,7 @@ class SignUpView(APIView):
                 password = request.data.get("password"),
             )
         else:
-            return Response(
-                {"message": "Invalid data or passwords do not match"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         user_profile = UserProfile.objects.create(
             user=user, 
@@ -80,24 +67,16 @@ class LogInView(APIView):
     )
     def post(self, request):
         if not SignInRequestSerializer(data=request.data).is_valid():
-            return Response(
-                {"message": "invalid data"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         try:
             user = User.objects.get(username=request.data.get("username"))
             if not user.check_password(request.data.get("password")):
-                return Response(
-                    {"message": "Password is incorrect"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                return Response(status=status.HTTP_400_BAD_REQUEST,)
             response = set_token_on_response_cookie(user, status.HTTP_200_OK)
             return response
 
         except User.DoesNotExist:
-            return Response(
-                {"message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 class LogOutView(APIView):
@@ -109,19 +88,14 @@ class LogOutView(APIView):
     )
     def post(self, request):
         if not TokenRefreshRequestSerializer(data=request.data).is_valid():
-            return Response(
-                {"detail": "no refresh token"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         
         try:
             token = RefreshToken(request.data.get("refresh"))
             token.blacklist()
         except:
-            return Response(
-                {"detail": "please signin again."}, status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        
         response = Response(status=status.HTTP_204_NO_CONTENT)
         response.delete_cookie("access_token")
         response.delete_cookie("refresh_token")
@@ -139,23 +113,18 @@ class ProfileView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: UserProfileSerializer, 400: "Bad_Request", 401: "Unauthorized", 404: "Not_Found"},
+        responses={200: UserProfileSerializer, 401: "Unauthorized", 404: "Not Found"},
     )
     def get(self, request):
         author = request.user
         if not author.is_authenticated:
-            return Response(
-                {"message": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             user_profile = UserProfile.objects.get(user=author)
             user_profile_serializer = UserProfileSerializer(instance=user_profile)
             return Response(user_profile_serializer.data, status=status.HTTP_200_OK)
         except UserProfile.DoesNotExist:
-            return Response(
-                {"message": "UserProfile does not exist"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND)
         
     @swagger_auto_schema(
         operation_id = "프로필수정",
@@ -168,22 +137,17 @@ class ProfileView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: UserProfileSerializer, 400: "Bad_Request", 401: "Unauthorized", 404: "Not_Found"},
+        responses={200: UserProfileSerializer, 400: "Bad Request", 401: "Unauthorized", 404: "Not Found"},
     )
     def put(self, request):
         author = request.user
         if not author.is_authenticated:
-            return Response(
-                {"message": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         
         user_profile = UserProfile.objects.get(user=author)
         user = author
         if not user_profile:
-            return Response(
-                {"message": "UserProfile does not exist"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND)
         
         user.username = request.data.get("username")
         user.email = request.data.get("email")
