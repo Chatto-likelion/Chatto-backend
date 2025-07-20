@@ -129,17 +129,26 @@ class LogOutView(APIView):
 
 
 class ProfileView(APIView):
-    authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
-
     @swagger_auto_schema(
         operation_id="프로필 조회",
         operation_description="로그인한 사용자의 프로필을 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
         responses={200: UserProfileSerializer, 400: "Bad_Request", 401: "Unauthorized", 404: "Not_Found"},
     )
-    def get(self, request, user_id):
+    def get(self, request):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(
+                {"message": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED
+            )
         try:
-            user_profile = UserProfile.objects.get(user_id=user_id)
+            user_profile = UserProfile.objects.get(user=author)
             user_profile_serializer = UserProfileSerializer(instance=user_profile)
             return Response(user_profile_serializer.data, status=status.HTTP_200_OK)
         except UserProfile.DoesNotExist:
@@ -152,16 +161,24 @@ class ProfileView(APIView):
         operation_id = "프로필수정",
         operation_description = "로그인한 사용자의 프로필을 수정합니다.",
         request_body = ProfileEditRequestSerializer,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
         responses={200: UserProfileSerializer, 400: "Bad_Request", 401: "Unauthorized", 404: "Not_Found"},
     )
-    def put(self, request, user_id):
-        user_profile = UserProfile.objects.get(user_id=user_id)
-        user = User.objects.get(id=user_id)
-        if not user:
+    def put(self, request):
+        author = request.user
+        if not author.is_authenticated:
             return Response(
-                {"message": "User does not exist"},
-                status=status.HTTP_404_NOT_FOUND,
+                {"message": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED
             )
+        
+        user_profile = UserProfile.objects.get(user=author)
+        user = author
         if not user_profile:
             return Response(
                 {"message": "UserProfile does not exist"},
