@@ -114,8 +114,6 @@ class BusChatView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         chats = ChatPlay.objects.filter(user=author)
-        if not chats:
-            return Response(status=status.HTTP_404_NOT_FOUND)
         
         # Serialize the chat data
         chat_data = [
@@ -233,7 +231,7 @@ class BusResultListView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ResultSerializerPlay(many=True), 404: "Not Found", 401: "Unauthorized"},
+        responses={200: ResultSerializerPlay(many=True), 401: "Unauthorized"},
     )
     def get(self, request):
         # authenticated user check
@@ -242,12 +240,10 @@ class BusResultListView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         
         # Get all analysis results for the logged-in user
-        try:
-            results = ResultPlayChem.objects.filter(chat__user = author)
-            serializer = ResultSerializerPlay(results, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except ResultPlayChem.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        results = ResultPlayChem.objects.filter(chat__user = author)
+        serializer = ResultSerializerPlay(results, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 class BusResultDetailView(APIView):

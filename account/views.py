@@ -19,6 +19,8 @@ from .models import UserProfile
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from rest_framework_simplejwt.views import TokenRefreshView
+
 
 def set_token_on_response_cookie(user, status_code):
     token = RefreshToken.for_user(user)
@@ -158,3 +160,26 @@ class ProfileView(APIView):
 
         user_profile_serializer = UserProfileSerializer(instance=user_profile)
         return Response(user_profile_serializer.data, status=status.HTTP_200_OK)
+
+class TokenRefreshView(APIView):
+    @swagger_auto_schema(
+        operation_id="토큰 재발급",
+        operation_description="access 토큰을 재발급 받습니다.",
+        request_body=TokenRefreshRequestSerializer,
+        responses={200: UserProfileSerializer},
+    )
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+
+        if not refresh_token:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            RefreshToken(refresh_token).verify()
+        except:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+            
+        new_access_token = str(RefreshToken(refresh_token).access_token)
+        response = Response({"detail": "token refreshed"}, status=status.HTTP_200_OK)
+        response.set_cookie("access_token", value=str(new_access_token), httponly=True)
+        return response
