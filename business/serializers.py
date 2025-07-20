@@ -1,24 +1,16 @@
 from rest_framework import serializers
-
-class UploadResponseSerializerBus(serializers.Serializer):
-    chat_id = serializers.IntegerField()
-
-class ListResponseSerializerBus(serializers.Serializer):
-    chat_id = serializers.IntegerField()
-    title = serializers.CharField(max_length=255)
-    people_num = serializers.IntegerField()
-    uploaded_at = serializers.DateTimeField()
+from rest_framework.serializers import ModelSerializer
+from .models import ChatBus, ResultBusContrib
 
 class AnalyseResponseSerializerBus(serializers.Serializer):
     result_id_ = serializers.IntegerField()
 
-class AllResultSerializerBus(serializers.Serializer):
-    result_id_bus_contrib = serializers.IntegerField()
-    analysis_date = serializers.DateField()
-    content = serializers.CharField()
-    analysis_type = serializers.CharField(max_length=255)
-    analysis_result = serializers.CharField()
-    chat_id_bus_contrib = serializers.IntegerField()
+class ChatSerializerBus(ModelSerializer):
+    class Meta:
+        model = ChatBus
+        fields = "__all__"
 
-class DetailResultSerializerBus(serializers.Serializer):
-    content = serializers.CharField()
+class ResultSerializerBus(ModelSerializer):
+    class Meta:
+        model = ResultBusContrib
+        fields = "__all__"

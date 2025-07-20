@@ -15,12 +15,11 @@ from .request_serializers import (
     ChatAnalysisRequestSerializerBus,
 )
 from .serializers import (
-    UploadResponseSerializerBus,
-    ListResponseSerializerBus,
-    UploadResponseSerializerBus,
     AnalyseResponseSerializerBus,
+    ChatSerializerBus,
+    ResultSerializerBus,
 )
-from .serializers import AllResultSerializerBus, DetailResultSerializerBus
+
 from .models import ChatBus, ResultBusContrib
 
 from rest_framework.permissions import IsAuthenticated
@@ -60,7 +59,8 @@ def extract_chat_title(path: str) -> str:
 class BusChatView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     @swagger_auto_schema(
-        operation_description="채팅 파일 업로드",
+        operation_id="채팅 파일 업로드",
+        operation_description="채팅 파일을 업로드합니다.",
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -75,7 +75,7 @@ class BusChatView(APIView):
                 description="업로드할 채팅 파일",
             ),
         ],
-        responses={201: UploadResponseSerializerBus, 400: "Bad Request", 401: "Unauthorized"},
+        responses={201: ChatSerializerBus, 400: "Bad Request", 401: "Unauthorized"},
     )
     def post(self, request):
         serializer = ChatUploadRequestSerializerBus(data=request.data)
@@ -102,9 +102,8 @@ class BusChatView(APIView):
             chat.title = extract_chat_title(file_path)
             chat.save()
 
-            response = UploadResponseSerializerBus(
-                {"chat_id": chat.chat_id}
-            )
+            response = ChatSerializerBus(chat)
+
             return Response(response.data, status=status.HTTP_201_CREATED)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -119,7 +118,7 @@ class BusChatView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ListResponseSerializerBus(many=True), 404: "Not Found", 401: "Unauthorized"},
+        responses={200: ChatSerializerBus(many=True), 404: "Not Found", 401: "Unauthorized"},
     )
     def get(self, request):
         author = request.user
@@ -138,12 +137,7 @@ class BusChatView(APIView):
         
         # Serialize the chat data
         chat_data = [
-            {
-                "chat_id": chat.chat_id,
-                "title": chat.title,
-                "people_num": chat.people_num,
-                "uploaded_at": chat.uploaded_at,
-            }
+            ChatSerializerBus(chat).data
             for chat in chats
         ]
         return Response(chat_data, status=status.HTTP_200_OK)
@@ -275,7 +269,7 @@ class BusResultListView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: AllResultSerializerBus, 404: "Not Found", 400: "Bad Request"},
+        responses={200: ResultSerializerBus(many=True), 404: "Not Found", 400: "Bad Request"},
     )
     def get(self, request):
         # authenticated user check
@@ -289,17 +283,8 @@ class BusResultListView(APIView):
         # Get all analysis results for the logged-in user
         try:
             results = ResultBusContrib.objects.filter(chat__user = author)
-            result_data = [
-                {
-                    "result_id": result.result_id,
-                    "analysis_date": result.analysis_date,
-                    "content": result.content,
-                    "analysis_type": result.analysis_type,
-                    "analysis_date": result.analysis_date,
-                }
-                for result in results
-            ]
-            return Response(result_data, status=status.HTTP_200_OK)
+            serializer = ResultSerializerBus(results, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except ResultBusContrib.DoesNotExist:
             return Response(
                 {"error": "No analysis results found for this user"},
@@ -308,7 +293,6 @@ class BusResultListView(APIView):
 
 
 class BusResultDetailView(APIView):
-
     @swagger_auto_schema(
         operation_id="분석 결과 조회",
         operation_description="특정 분석 결과를 조회합니다.",
@@ -319,7 +303,7 @@ class BusResultDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: DetailResultSerializerBus, 404: "Not Found", 400: "Bad Request", 401: "Unauthorized"},
+        responses={200: ResultSerializerBus, 404: "Not Found", 400: "Bad Request", 401: "Unauthorized"},
     )
     def get(self, request, result_id):
         # authenticated user check
@@ -336,7 +320,8 @@ class BusResultDetailView(APIView):
                     {"error": "You do not have permission to view this analysis result"},
                     status=status.HTTP_403_FORBIDDEN,
                 )
-            return Response({"content": result.content}, status=status.HTTP_200_OK)
+            serializer = ResultSerializerBus(result)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except ResultBusContrib.DoesNotExist:
             return Response(
                 {"error": "Analysis result not found"}, status=status.HTTP_404_NOT_FOUND
