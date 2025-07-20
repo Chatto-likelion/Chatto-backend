@@ -10,18 +10,18 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.contrib.auth import login
 
-from business.request_serializers import (
-    ChatUploadRequestSerializer,
-    ChatAnalysisRequestSerializer,
+from .request_serializers import (
+    ChatUploadRequestSerializerBus,
+    ChatAnalysisRequestSerializerBus,
 )
-from business.serializers import (
-    UploadResponseSerializer,
-    ListResponseSerializer,
-    UploadResponseSerializer,
-    AnalyseResponseSerializer,
+from .serializers import (
+    UploadResponseSerializerBus,
+    ListResponseSerializerBus,
+    UploadResponseSerializerBus,
+    AnalyseResponseSerializerBus,
 )
-from business.serializers import AllResultSerializer, DetailResultSerializer
-from business.models import Chat
+from .serializers import AllResultSerializerBus, DetailResultSerializerBus
+from .models import ChatBus, ResultBusContrib
 
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import logout
@@ -32,7 +32,6 @@ from rest_framework.authentication import SessionAuthentication
 
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from .models import ResultBusContrib
 from django.utils import timezone
 
 import re
@@ -76,10 +75,10 @@ class BusChatView(APIView):
                 description="업로드할 채팅 파일",
             ),
         ],
-        responses={201: UploadResponseSerializer, 400: "Bad Request", 401: "Unauthorized"},
+        responses={201: UploadResponseSerializerBus, 400: "Bad Request", 401: "Unauthorized"},
     )
     def post(self, request):
-        serializer = ChatUploadRequestSerializer(data=request.data)
+        serializer = ChatUploadRequestSerializerBus(data=request.data)
         if serializer.is_valid():
             file = serializer.validated_data["file"]
             author = request.user
@@ -91,19 +90,19 @@ class BusChatView(APIView):
                 )
 
             # DB에 먼저 저장해서 경로를 얻는다
-            chat = Chat.objects.create(
+            chat = ChatBus.objects.create(
                 title="임시 제목",
-                content=file,
+                file=file,
                 people_num=12,  # 임시 값
                 user=request.user,
             )
 
             # 파일 경로에서 제목 추출
-            file_path = chat.content.path
+            file_path = chat.file.path
             chat.title = extract_chat_title(file_path)
             chat.save()
 
-            response = UploadResponseSerializer(
+            response = UploadResponseSerializerBus(
                 {"chat_id": chat.chat_id}
             )
             return Response(response.data, status=status.HTTP_201_CREATED)
@@ -120,7 +119,7 @@ class BusChatView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ListResponseSerializer(many=True), 404: "Not Found", 401: "Unauthorized"},
+        responses={200: ListResponseSerializerBus(many=True), 404: "Not Found", 401: "Unauthorized"},
     )
     def get(self, request):
         author = request.user
@@ -130,7 +129,7 @@ class BusChatView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        chats = Chat.objects.filter(user=author)
+        chats = ChatBus.objects.filter(user=author)
         if not chats:
             return Response(
                 {"error": "No chats found for this user"},
@@ -143,7 +142,7 @@ class BusChatView(APIView):
                 "chat_id": chat.chat_id,
                 "title": chat.title,
                 "people_num": chat.people_num,
-                "uploaded_at": chat.updated_at,
+                "uploaded_at": chat.uploaded_at,
             }
             for chat in chats
         ]
@@ -162,7 +161,7 @@ class BusChatDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={204: "No Content", 404: "Not Found", 400: "Bad Request"},
+        responses={204: "No Content", 404: "Not Found", 400: "Bad Request", 403: "Forbidden", 401: "Unauthorized"},
     )
     def delete(self, request, chat_id):
         # authenticated user check
@@ -174,10 +173,15 @@ class BusChatDetailView(APIView):
             )
         
         try:
-            chat = Chat.objects.get(chat_id=chat_id, user=author)
+            chat = ChatBus.objects.get(chat_id=chat_id)
+            if chat.user != author:
+                return Response(
+                    {"error": "You do not have permission to delete this chat"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             chat.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except Chat.DoesNotExist:
+        except ChatBus.DoesNotExist:
             return Response(
                 {"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -187,7 +191,7 @@ class BusChatAnalyzeView(APIView):
     @swagger_auto_schema(
         operation_id="채팅 분석",
         operation_description="채팅 데이터를 분석합니다.",
-        request_body=ChatAnalysisRequestSerializer,
+        request_body=ChatAnalysisRequestSerializerBus,
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -196,7 +200,7 @@ class BusChatAnalyzeView(APIView):
                 type=openapi.TYPE_STRING),
         ],
         responses={
-            200: AnalyseResponseSerializer,
+            200: AnalyseResponseSerializerBus,
             404: "Not Found",
             400: "Bad Request",
             403: "Forbidden"  # If the user does not have permission to analyze the chat
@@ -212,7 +216,7 @@ class BusChatAnalyzeView(APIView):
             )
         
         # Validate request data
-        serializer = ChatAnalysisRequestSerializer(data=request.data)
+        serializer = ChatAnalysisRequestSerializerBus(data=request.data)
         if serializer.is_valid() is False:
             return Response(
                 {"error": "Invalid request data"},
@@ -226,13 +230,13 @@ class BusChatAnalyzeView(APIView):
             analysis_end = serializer.validated_data["analysis_end"]
 
         try:
-            chat = Chat.objects.get(chat_id=chat_id)
+            chat = ChatBus.objects.get(chat_id=chat_id)
             if chat.user != author:
                 return Response(
                     {"error": "You do not have permission to analyze this chat"},
                     status=status.HTTP_403_FORBIDDEN,
                 )
-        except Chat.DoesNotExist:
+        except ChatBus.DoesNotExist:
             return Response(
                 {"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -271,7 +275,7 @@ class BusResultListView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: AllResultSerializer, 404: "Not Found", 400: "Bad Request"},
+        responses={200: AllResultSerializerBus, 404: "Not Found", 400: "Bad Request"},
     )
     def get(self, request):
         # authenticated user check
@@ -315,7 +319,7 @@ class BusResultDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: DetailResultSerializer, 404: "Not Found", 400: "Bad Request", 401: "Unauthorized"},
+        responses={200: DetailResultSerializerBus, 404: "Not Found", 400: "Bad Request", 401: "Unauthorized"},
     )
     def get(self, request, result_id):
         # authenticated user check

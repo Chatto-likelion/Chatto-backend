@@ -1,9 +1,9 @@
 from rest_framework import serializers
 
-class ChatUploadRequestSerializerBus(serializers.Serializer):
+class ChatUploadRequestSerializerPlay(serializers.Serializer):
     file = serializers.FileField()
 
-class ChatAnalysisRequestSerializerBus(serializers.Serializer):
+class ChatAnalysisRequestSerializerPlay(serializers.Serializer):
     people_num = serializers.IntegerField()
     rel = serializers.CharField(max_length=255) 
     situation = serializers.CharField(max_length=255)

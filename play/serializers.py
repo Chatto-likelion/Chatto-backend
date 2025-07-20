@@ -1,18 +1,18 @@
 from rest_framework import serializers
 
-class UploadResponseSerializerBus(serializers.Serializer):
+class UploadResponseSerializerPlay(serializers.Serializer):
     chat_id = serializers.IntegerField()
 
-class ListResponseSerializerBus(serializers.Serializer):
+class ListResponseSerializerPlay(serializers.Serializer):
     chat_id = serializers.IntegerField()
     title = serializers.CharField(max_length=255)
     people_num = serializers.IntegerField()
     uploaded_at = serializers.DateTimeField()
 
-class AnalyseResponseSerializerBus(serializers.Serializer):
+class AnalyseResponseSerializerPlay(serializers.Serializer):
     result_id_ = serializers.IntegerField()
 
-class AllResultSerializerBus(serializers.Serializer):
+class AllResultSerializerPlay(serializers.Serializer):
     result_id_bus_contrib = serializers.IntegerField()
     analysis_date = serializers.DateField()
     content = serializers.CharField()
@@ -20,5 +20,5 @@ class AllResultSerializerBus(serializers.Serializer):
     analysis_result = serializers.CharField()
     chat_id_bus_contrib = serializers.IntegerField()
 
-class DetailResultSerializerBus(serializers.Serializer):
+class DetailResultSerializerPlay(serializers.Serializer):
     content = serializers.CharField()
