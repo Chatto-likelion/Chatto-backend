@@ -106,7 +106,7 @@ class BusChatView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ChatSerializerPlay(many=True), 404: "Not Found", 401: "Unauthorized"},
+        responses={200: ChatSerializerPlay(many=True), 401: "Unauthorized"},
     )
     def get(self, request):
         author = request.user
