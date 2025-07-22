@@ -175,7 +175,8 @@ cython_debug/
 
 
 
-chat_files/
+
 # Custom
-uploads/
+chat_files_business/
+chat_files_play/
 

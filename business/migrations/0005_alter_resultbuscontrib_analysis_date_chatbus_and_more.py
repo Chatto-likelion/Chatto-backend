@@ -8,33 +8,34 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    initial = True
-
     dependencies = [
+        ('business', '0004_rename_chat_id_bus_contrib_chat_chat_id_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
+        migrations.AlterField(
+            model_name='resultbuscontrib',
+            name='analysis_date',
+            field=models.DateTimeField(default=django.utils.timezone.now),
+        ),
         migrations.CreateModel(
-            name='ChatPlay',
+            name='ChatBus',
             fields=[
                 ('chat_id', models.AutoField(primary_key=True, serialize=False)),
                 ('title', models.TextField()),
-                ('file', models.FileField(upload_to='chat_files_play/')),
+                ('file', models.FileField(upload_to='chat_files_business/')),
                 ('people_num', models.IntegerField()),
                 ('uploaded_at', models.DateTimeField(default=django.utils.timezone.now)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
         ),
-        migrations.CreateModel(
-            name='ResultPlayChem',
-            fields=[
-                ('result_id', models.AutoField(primary_key=True, serialize=False)),
-                ('content', models.TextField()),
-                ('is_saved', models.BooleanField(default=False)),
-                ('analysis_date', models.DateTimeField(default=django.utils.timezone.now)),
-                ('analysis_type', models.TextField()),
-                ('chat', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='play.chatplay')),
-            ],
+        migrations.AlterField(
+            model_name='resultbuscontrib',
+            name='chat',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='business.chatbus'),
+        ),
+        migrations.DeleteModel(
+            name='Chat',
         ),
     ]
