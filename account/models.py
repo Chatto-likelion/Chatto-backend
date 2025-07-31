@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 class UserProfile(models.Model):
     profile_id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    point = models.IntegerField()
+    point = models.IntegerField(null=True, default=0)
     phone = models.CharField(max_length=15, blank=True, null=True)
 
     def __str__(self):
