@@ -48,14 +48,14 @@ class SignUpView(APIView):
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        user_profile = UserProfile.objects.create(
+        UserProfile.objects.create(
             user=user, 
             point=0, 
             phone=request.data.get("phone")
         )
 
-        user_profile_serializer = UserProfileSerializer(instance=user_profile)
-        return Response(user_profile_serializer.data, status=status.HTTP_201_CREATED)
+        response = set_token_on_response_cookie(user, status.HTTP_201_CREATED)
+        return response
 
 
 class LogInView(APIView):

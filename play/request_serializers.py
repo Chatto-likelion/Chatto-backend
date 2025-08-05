@@ -3,9 +3,18 @@ from rest_framework import serializers
 class ChatUploadRequestSerializerPlay(serializers.Serializer):
     file = serializers.FileField()
 
-class ChatAnalysisRequestSerializerPlay(serializers.Serializer):
-    people_num = serializers.IntegerField()
-    rel = serializers.CharField(max_length=255) 
-    situation = serializers.CharField(max_length=255)
-    analysis_start = serializers.DateTimeField()
-    analysis_end = serializers.DateTimeField()
+class ChatChemAnalysisRequestSerializerPlay(serializers.Serializer):
+    relationship = serializers.CharField() 
+    situation = serializers.CharField()
+    analysis_start = serializers.CharField()
+    analysis_end = serializers.CharField()
+
+class ChatSomeAnalysisRequestSerializerPlay(serializers.Serializer):
+    relationship = serializers.CharField() 
+    age = serializers.CharField()
+    analysis_start = serializers.CharField()
+    analysis_end = serializers.CharField()
+
+class ChatMBTIAnalysisRequestSerializerPlay(serializers.Serializer):
+    analysis_start = serializers.CharField()
+    analysis_end = serializers.CharField()
