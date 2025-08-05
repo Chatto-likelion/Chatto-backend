@@ -155,10 +155,11 @@ class BusChatDetailView(APIView):
             )
 
 
-class BusChatAnalyzeView(APIView):
+
+class BusChatContribAnalyzeView(APIView):
     @swagger_auto_schema(
-        operation_id="채팅 분석",
-        operation_description="채팅 데이터를 분석합니다.",
+        operation_id="채팅 기여 분석",
+        operation_description="채팅 기여 데이터를 분석합니다.",
         request_body=ChatAnalysisRequestSerializerBus,
         manual_parameters=[
             openapi.Parameter(
@@ -185,12 +186,6 @@ class BusChatAnalyzeView(APIView):
         serializer = ChatAnalysisRequestSerializerBus(data=request.data)
         if not serializer.is_valid():
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        else:
-            people_num = serializer.validated_data["people_num"]
-            rel = serializer.validated_data["rel"]
-            situation = serializer.validated_data["situation"]
-            analysis_start = serializer.validated_data["analysis_start"]
-            analysis_end = serializer.validated_data["analysis_end"]
 
         try:
             chat = ChatBus.objects.get(chat_id=chat_id)
@@ -199,18 +194,24 @@ class BusChatAnalyzeView(APIView):
         except ChatBus.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        project_type=serializer.validated_data["project_type"]
+        team_type=serializer.validated_data["team_type"]
+        analysis_date_start=serializer.validated_data["analysis_start"]
+        analysis_date_end=serializer.validated_data["analysis_end"]
+
         analysis_result_text = (
-            f"분석 대상 인원: {people_num}명\n"
-            f"관계: {rel}\n"
-            f"상황: {situation}\n"
-            f"분석 구간: {analysis_start} ~ {analysis_end}"
+            f"프로젝트 유형: {project_type}\n"
+            f"팀 유형: {team_type}\n"
+            f"분석 구간: {analysis_date_start} ~ {analysis_date_end}"
         )
 
         result = ResultBusContrib.objects.create(
             content=analysis_result_text,
             is_saved=1,
-            analysis_date=timezone.now().date(),
-            analysis_type="개인별 기여도 분석",
+            project_type=project_type,
+            team_type=team_type,
+            analysis_date_start=analysis_date_start,
+            analysis_date_end=analysis_date_end,
             chat=chat,
         )
 

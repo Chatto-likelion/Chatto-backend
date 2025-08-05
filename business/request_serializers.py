@@ -4,8 +4,7 @@ class ChatUploadRequestSerializerBus(serializers.Serializer):
     file = serializers.FileField()
 
 class ChatAnalysisRequestSerializerBus(serializers.Serializer):
-    people_num = serializers.IntegerField()
-    rel = serializers.CharField(max_length=255) 
-    situation = serializers.CharField(max_length=255)
-    analysis_start = serializers.DateTimeField()
-    analysis_end = serializers.DateTimeField()
+    project_type = serializers.CharField() 
+    team_type = serializers.CharField()
+    analysis_start = serializers.CharField()
+    analysis_end = serializers.CharField()

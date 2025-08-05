@@ -10,15 +10,24 @@ from drf_yasg import openapi
 
 from .request_serializers import (
     ChatUploadRequestSerializerPlay,
-    ChatAnalysisRequestSerializerPlay,
+    ChatChemAnalysisRequestSerializerPlay,
+    ChatSomeAnalysisRequestSerializerPlay,
+    ChatMBTIAnalysisRequestSerializerPlay,
 )
 from .serializers import (
     AnalyseResponseSerializerPlay,
     ChatSerializerPlay,
-    ResultSerializerPlay,
+    ChemResultSerializerPlay,
+    SomeResultSerializerPlay,
+    MBTIResultSerializerPlay,
 )
 
-from .models import ChatPlay, ResultPlayChem
+from .models import(
+    ChatPlay, 
+    ResultPlayChem,
+    ResultPlaySome,
+    ResultPlayMBTI,
+)
 
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -86,7 +95,7 @@ def count_chat_participants_with_gemini(file_path: str) -> int:
         return 1
     
 # Create your views here.
-class BusChatView(APIView):
+class PlayChatView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     @swagger_auto_schema(
         operation_id="채팅 파일 업로드",
@@ -171,7 +180,7 @@ class BusChatView(APIView):
 
 
 
-class BusChatDetailView(APIView):
+class PlayChatDetailView(APIView):
     @swagger_auto_schema(
         operation_id="채팅 삭제",
         operation_description="채팅을 삭제합니다.",
@@ -200,11 +209,16 @@ class BusChatDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-class BusChatAnalyzeView(APIView):
+
+##################################################################
+
+
+
+class PlayChatChemAnalyzeView(APIView):
     @swagger_auto_schema(
-        operation_id="채팅 분석",
-        operation_description="채팅 데이터를 분석합니다.",
-        request_body=ChatAnalysisRequestSerializerPlay,
+        operation_id="채팅 케미 분석",
+        operation_description="채팅 케미 데이터를 분석합니다.",
+        request_body=ChatChemAnalysisRequestSerializerPlay,
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -227,15 +241,14 @@ class BusChatAnalyzeView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         
         # Validate request data
-        serializer = ChatAnalysisRequestSerializerPlay(data=request.data)
+        serializer = ChatChemAnalysisRequestSerializerPlay(data=request.data)
         if serializer.is_valid() is False:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        else:
-            people_num = serializer.validated_data["people_num"]
-            rel = serializer.validated_data["rel"]
-            situation = serializer.validated_data["situation"]
-            analysis_start = serializer.validated_data["analysis_start"]
-            analysis_end = serializer.validated_data["analysis_end"]
+
+        relationship = serializer.validated_data["relationship"]
+        situation = serializer.validated_data["situation"]
+        analysis_start = serializer.validated_data["analysis_start"]
+        analysis_end = serializer.validated_data["analysis_end"]
 
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
@@ -245,8 +258,7 @@ class BusChatAnalyzeView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         analysis_result_text = (
-            f"분석 대상 인원: {people_num}명\n"
-            f"관계: {rel}\n"
+            f"관계: {relationship}\n"
             f"상황: {situation}\n"
             f"분석 구간: {analysis_start} ~ {analysis_end}"
         )
@@ -254,8 +266,10 @@ class BusChatAnalyzeView(APIView):
         result = ResultPlayChem.objects.create(
             content=analysis_result_text,
             is_saved=1,
-            analysis_date=timezone.now().date(),
-            analysis_type="개인별 기여도 분석",
+            relationship=relationship,
+            situation=situation,
+            analysis_date_start=analysis_start,
+            analysis_date_end=analysis_end,
             chat=chat,
         )
 
@@ -267,10 +281,12 @@ class BusChatAnalyzeView(APIView):
         )
 
 
-class BusResultListView(APIView):
+
+class PlayChatSomeAnalyzeView(APIView):
     @swagger_auto_schema(
-        operation_id="채팅 분석 결과 리스트 조회",
-        operation_description="로그인된 유저의 채팅 분석 결과 리스트를 조회합니다.",
+        operation_id="채팅 썸 분석",
+        operation_description="채팅 썸 데이터를 분석합니다.",
+        request_body=ChatSomeAnalysisRequestSerializerPlay,
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -278,7 +294,140 @@ class BusResultListView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ResultSerializerPlay(many=True), 401: "Unauthorized"},
+        responses={
+            201: AnalyseResponseSerializerPlay,
+            404: "Not Found",
+            400: "Bad Request",
+            403: "Forbidden",  # If the user does not have permission to analyze the chat
+            401: "Unauthorized",  # If the user is not authenticated
+        },
+    )
+    def post(self, request, chat_id):
+        # authenticated user check
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Validate request data
+        serializer = ChatSomeAnalysisRequestSerializerPlay(data=request.data)
+        if serializer.is_valid() is False:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        relationship = serializer.validated_data["relationship"]
+        age = serializer.validated_data["age"]
+        analysis_start = serializer.validated_data["analysis_start"]
+        analysis_end = serializer.validated_data["analysis_end"]
+
+        try:
+            chat = ChatPlay.objects.get(chat_id=chat_id)
+            if chat.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        except ChatPlay.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        analysis_result_text = (
+            f"관계: {relationship}\n"
+            f"나이: {age}\n"
+            f"분석 구간: {analysis_start} ~ {analysis_end}"
+        )
+
+        result = ResultPlaySome.objects.create(
+            content=analysis_result_text,
+            is_saved=1,
+            relationship=relationship,
+            age=age,
+            analysis_date_start=analysis_start,
+            analysis_date_end=analysis_end,
+            chat=chat,
+        )
+
+        return Response(
+            {
+                "result_id": result.result_id,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+
+class PlayChatMBTIAnalyzeView(APIView):
+    @swagger_auto_schema(
+        operation_id="채팅 MBTI 분석",
+        operation_description="채팅 MBTI 데이터를 분석합니다.",
+        request_body=ChatMBTIAnalysisRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={
+            201: AnalyseResponseSerializerPlay,
+            404: "Not Found",
+            400: "Bad Request",
+            403: "Forbidden",  # If the user does not have permission to analyze the chat
+            401: "Unauthorized",  # If the user is not authenticated
+        },
+    )
+    def post(self, request, chat_id):
+        # authenticated user check
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Validate request data
+        serializer = ChatMBTIAnalysisRequestSerializerPlay(data=request.data)
+        if serializer.is_valid() is False:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        analysis_start = serializer.validated_data["analysis_start"]
+        analysis_end = serializer.validated_data["analysis_end"]
+
+        try:
+            chat = ChatPlay.objects.get(chat_id=chat_id)
+            if chat.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        except ChatPlay.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        analysis_result_text = (
+            f"분석 구간: {analysis_start} ~ {analysis_end}"
+        )
+
+        result = ResultPlayMBTI.objects.create(
+            content=analysis_result_text,
+            is_saved=1,
+            analysis_date_start=analysis_start,
+            analysis_date_end=analysis_end,
+            chat=chat,
+        )
+
+        return Response(
+            {
+                "result_id": result.result_id,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+
+##################################################################
+
+
+
+class PlayChemResultListView(APIView):
+    @swagger_auto_schema(
+        operation_id="채팅 케미 분석 결과 리스트 조회",
+        operation_description="로그인된 유저의 채팅 케미 분석 결과 리스트를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={200: ChemResultSerializerPlay(many=True), 401: "Unauthorized"},
     )
     def get(self, request):
         # authenticated user check
@@ -288,15 +437,15 @@ class BusResultListView(APIView):
         
         # Get all analysis results for the logged-in user
         results = ResultPlayChem.objects.filter(chat__user = author)
-        serializer = ResultSerializerPlay(results, many=True)
+        serializer = ChemResultSerializerPlay(results, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
-class BusResultDetailView(APIView):
+class PlaySomeResultListView(APIView):
     @swagger_auto_schema(
-        operation_id="분석 결과 조회",
-        operation_description="특정 분석 결과를 조회합니다.",
+        operation_id="채팅 썸 분석 결과 리스트 조회",
+        operation_description="로그인된 유저의 채팅 썸 분석 결과 리스트를 조회합니다.",
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -304,7 +453,63 @@ class BusResultDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ResultSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+        responses={200: SomeResultSerializerPlay(many=True), 401: "Unauthorized"},
+    )
+    def get(self, request):
+        # authenticated user check
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Get all analysis results for the logged-in user
+        results = ResultPlaySome.objects.filter(chat__user = author)
+        serializer = SomeResultSerializerPlay(results, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+class PlayMBTIResultListView(APIView):
+    @swagger_auto_schema(
+        operation_id="채팅 MBTI 분석 결과 리스트 조회",
+        operation_description="로그인된 유저의 채팅 MBTI 분석 결과 리스트를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={200: MBTIResultSerializerPlay(many=True), 401: "Unauthorized"},
+    )
+    def get(self, request):
+        # authenticated user check
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Get all analysis results for the logged-in user
+        results = ResultPlayMBTI.objects.filter(chat__user = author)
+        serializer = MBTIResultSerializerPlay(results, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+##################################################################
+
+
+
+class PlayChemResultDetailView(APIView):
+    @swagger_auto_schema(
+        operation_id="케미 분석 결과 조회",
+        operation_description="특정 케미 분석 결과를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={200: ChemResultSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
     )
     def get(self, request, result_id):
         # authenticated user check
@@ -315,14 +520,14 @@ class BusResultDetailView(APIView):
             result = ResultPlayChem.objects.get(result_id=result_id)
             if result.chat.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
-            serializer = ResultSerializerPlay(result)
+            serializer = ChemResultSerializerPlay(result)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ResultPlayChem.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
-        operation_id="분석 결과 삭제",
-        operation_description="특정 분석 결과를 삭제합니다.",
+        operation_id="케미 분석 결과 삭제",
+        operation_description="특정 케미 분석 결과를 삭제합니다.",
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -344,4 +549,114 @@ class BusResultDetailView(APIView):
             result.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except ResultPlayChem.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+     
+class PlaySomeResultDetailView(APIView):
+    @swagger_auto_schema(
+        operation_id="썸 분석 결과 조회",
+        operation_description="특정 썸 분석 결과를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={200: SomeResultSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+    )
+    def get(self, request, result_id):
+        # authenticated user check
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            if result.chat.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            serializer = SomeResultSerializerPlay(result)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except ResultPlaySome.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @swagger_auto_schema(
+        operation_id="썸 분석 결과 삭제",
+        operation_description="특정 썸 분석 결과를 삭제합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={204: "No Content", 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+    )
+    def delete(self, request, result_id):
+        # authenticated user check
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            if result.chat.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            result.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ResultPlaySome.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+
+class PlayMBTIResultDetailView(APIView):
+    @swagger_auto_schema(
+        operation_id="MBTI 분석 결과 조회",
+        operation_description="특정 MBTI 분석 결과를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={200: MBTIResultSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+    )
+    def get(self, request, result_id):
+        # authenticated user check
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            if result.chat.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            serializer = MBTIResultSerializerPlay(result)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except ResultPlayMBTI.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @swagger_auto_schema(
+        operation_id="MBTI 분석 결과 삭제",
+        operation_description="특정 MBTI 분석 결과를 삭제합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={204: "No Content", 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+    )
+    def delete(self, request, result_id):
+        # authenticated user check
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            if result.chat.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            result.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ResultPlayMBTI.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
