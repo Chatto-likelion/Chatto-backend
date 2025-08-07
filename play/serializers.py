@@ -5,6 +5,9 @@ from .models import(
     ResultPlayChem,
     ResultPlaySome,
     ResultPlayMBTI,
+    ResultPlaySomeSpec,
+    ResultPlayMBTISpec,
+    ResultPlayMBTISpecPersonal
 ) 
 
 class AnalyseResponseSerializerPlay(serializers.Serializer):
@@ -30,3 +33,31 @@ class MBTIResultSerializerPlay(ModelSerializer):
     class Meta:
         model = ResultPlayMBTI
         fields = "__all__"
+
+###################################################################
+
+class SomeSpecSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ResultPlaySomeSpec
+        fields = "__all__"
+
+class MBTISpecSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ResultPlayMBTISpec
+        fields = "__all__"
+
+class MBTISpecPersonalSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ResultPlayMBTISpecPersonal
+        fields = "__all__"
+
+###################################################################
+
+class SomeAllSerializerPlay(serializers.Serializer):
+    result = SomeResultSerializerPlay()
+    spec = SomeSpecSerializerPlay()
+
+class MBTIAllSerializerPlay(serializers.Serializer):
+    result = MBTIResultSerializerPlay()
+    spec = MBTISpecSerializerPlay()
+    spec_personal = MBTISpecPersonalSerializerPlay()

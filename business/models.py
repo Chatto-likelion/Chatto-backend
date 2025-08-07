@@ -13,11 +13,12 @@ class ChatBus(models.Model):
     
 class ResultBusContrib(models.Model):
     result_id = models.AutoField(primary_key=True)
-    content = models.TextField(default="")
+    title = models.TextField(default = "")
+    people_num = models.IntegerField(default=0)
     is_saved = models.BooleanField(default=False)
     project_type = models.TextField(default="")
     team_type = models.TextField(default="")
     analysis_date_start = models.TextField(default="")
     analysis_date_end = models.TextField(default="")
-    analysis_date = models.DateField(default=timezone.now)
-    chat = models.ForeignKey(ChatBus, on_delete=models.CASCADE)
+    created_at = models.DateField(default=timezone.now)
+    chat = models.ForeignKey(ChatBus, on_delete=models.SET_NULL, null=True, blank=True)

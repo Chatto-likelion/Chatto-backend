@@ -20,6 +20,8 @@ from .serializers import (
     ChemResultSerializerPlay,
     SomeResultSerializerPlay,
     MBTIResultSerializerPlay,
+    SomeAllSerializerPlay,
+    MBTIAllSerializerPlay
 )
 
 from .models import(
@@ -27,6 +29,9 @@ from .models import(
     ResultPlayChem,
     ResultPlaySome,
     ResultPlayMBTI,
+    ResultPlaySomeSpec,
+    ResultPlayMBTISpec,
+    ResultPlayMBTISpecPersonal,
 )
 
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -257,14 +262,8 @@ class PlayChatChemAnalyzeView(APIView):
         except ChatPlay.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        analysis_result_text = (
-            f"관계: {relationship}\n"
-            f"상황: {situation}\n"
-            f"분석 구간: {analysis_start} ~ {analysis_end}"
-        )
 
         result = ResultPlayChem.objects.create(
-            content=analysis_result_text,
             is_saved=1,
             relationship=relationship,
             situation=situation,
@@ -325,20 +324,55 @@ class PlayChatSomeAnalyzeView(APIView):
         except ChatPlay.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        analysis_result_text = (
-            f"관계: {relationship}\n"
-            f"나이: {age}\n"
-            f"분석 구간: {analysis_start} ~ {analysis_end}"
-        )
 
         result = ResultPlaySome.objects.create(
-            content=analysis_result_text,
+            title=chat.title,
+            people_num=chat.people_num,
             is_saved=1,
             relationship=relationship,
             age=age,
             analysis_date_start=analysis_start,
             analysis_date_end=analysis_end,
             chat=chat,
+        )
+
+        ResultPlaySomeSpec.objects.create(
+            result=result,
+            score_main=0,
+            comment_main="",
+            score_A=0,
+            score_B=0,
+            trait_A="",
+            trait_B="",
+            summary="",
+            tone=0,
+            tone_desc="",
+            tone_ex="",
+            emo=0,
+            emo_desc="",
+            emo_ex="",
+            addr=0,
+            addr_desc="",
+            addr_ex="",
+            reply_A = 0,
+            reply_B = 0,
+            reply_A_desc = "",
+            reply_B_desc = "",
+            rec_A = 0,
+            rec_B = 0,
+            rec_A_desc = "",
+            rec_B_desc = "",
+            rec_A_ex = "",
+            rec_B_ex = "",
+            atti_A = 0,
+            atti_B = 0,
+            atti_A_desc = "",
+            atti_B_desc = "",
+            atti_A_ex = "",
+            atti_B_ex = "",
+            pattern_analysis = "",
+            chatto_coundel = "",
+            chatto_coundel_tips = "",
         )
 
         return Response(
@@ -391,16 +425,46 @@ class PlayChatMBTIAnalyzeView(APIView):
         except ChatPlay.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        analysis_result_text = (
-            f"분석 구간: {analysis_start} ~ {analysis_end}"
-        )
 
         result = ResultPlayMBTI.objects.create(
-            content=analysis_result_text,
+            title=chat.title,
+            people_num=chat.people_num,
             is_saved=1,
             analysis_date_start=analysis_start,
             analysis_date_end=analysis_end,
             chat=chat,
+        )
+
+        spec = ResultPlayMBTISpec.objects.create(
+            result=result,
+            total_I=0,
+            total_E=0,
+            total_S=0,
+            total_N=0,
+            total_F=0,
+            total_T=0,
+            total_J=0,
+            total_P=0,
+        )
+
+        ResultPlayMBTISpecPersonal.objects.create(
+            spec=spec,
+            MBTI="",
+            summary="",
+            desc="",
+            position="",
+            personality="",
+            style="",
+            moment_ex="",
+            moment_desc="",
+            momentIE_ex="",
+            momentIE_desc="",
+            momentSN_ex="",
+            momentSN_desc="",
+            momentFT_ex="",
+            momentFT_desc="",
+            momentJP_ex="",
+            momentJP_desc="",
         )
 
         return Response(
@@ -564,7 +628,7 @@ class PlaySomeResultDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: SomeResultSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+        responses={200: SomeAllSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
     )
     def get(self, request, result_id):
         # authenticated user check
@@ -575,7 +639,16 @@ class PlaySomeResultDetailView(APIView):
             result = ResultPlaySome.objects.get(result_id=result_id)
             if result.chat.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
-            serializer = SomeResultSerializerPlay(result)
+            
+            spec = ResultPlaySomeSpec.objects.get(result=result)
+
+            payload = {
+                "result": result,
+                "spec": spec,
+            }
+
+            serializer = SomeAllSerializerPlay(payload)
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ResultPlaySome.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -619,7 +692,7 @@ class PlayMBTIResultDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: MBTIResultSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+        responses={200: MBTIAllSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
     )
     def get(self, request, result_id):
         # authenticated user check
@@ -628,9 +701,21 @@ class PlayMBTIResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlayMBTI.objects.get(result_id=result_id)
+
             if result.chat.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
-            serializer = MBTIResultSerializerPlay(result)
+            
+            spec = ResultPlayMBTISpec.objects.get(result=result)
+            spec_personal = ResultPlayMBTISpecPersonal.objects.get(spec=spec)
+            
+            payload = {
+                "result": result,
+                "spec": spec,
+                "spec_personal": spec_personal,
+            }
+
+            serializer = MBTIAllSerializerPlay(payload)
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ResultPlayMBTI.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
