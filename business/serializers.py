@@ -10,7 +10,7 @@ class ChatSerializerBus(ModelSerializer):
         model = ChatBus
         fields = "__all__"
 
-class ResultSerializerBus(ModelSerializer):
+class ContribResultSerializerBus(ModelSerializer):
     class Meta:
         model = ResultBusContrib
         fields = "__all__"

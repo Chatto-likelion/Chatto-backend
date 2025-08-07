@@ -15,7 +15,7 @@ from .request_serializers import (
 from .serializers import (
     AnalyseResponseSerializerBus,
     ChatSerializerBus,
-    ResultSerializerBus,
+    ContribResultSerializerBus,
 )
 
 from .models import ChatBus, ResultBusContrib
@@ -25,6 +25,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
 
 import re
+from google import genai
+from django.conf import settings
 
 
 def extract_chat_title(path: str) -> str:
@@ -45,6 +47,43 @@ def extract_chat_title(path: str) -> str:
         # “님과” 패턴이 없으면 줄 전체를 리턴하거나 빈 문자열
         return first_line
 
+def count_chat_participants_with_gemini(file_path: str) -> int:
+    """
+    Gemini API를 사용해 채팅 로그 파일의 참여 인원 수를 계산합니다.
+    - file_path: 분석할 채팅 파일의 절대 경로
+    - 반환값: 계산된 인원 수 (정수)
+    """
+    try:
+        # 파일이 매우 클 경우를 대비해 앞부분 일부만 읽는 것이 효율적입니다.
+        with open(file_path, "r", encoding="utf-8") as f:
+            # 여기서는 최대 500줄만 읽도록 제한 (성능 및 비용 최적화)
+            lines = f.readlines()
+            chat_content_sample = "".join(lines[:500])
+
+        # Gemini API 클라이언트 초기화
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=[
+                "당신은 카카오톡 채팅 로그 분석 전문가입니다. \
+                주어진 채팅 내용에서 고유한 참여자(사람 이름)가 총 몇 명인지 세어주세요. \
+                아래 채팅 내용을 보고, 다른 부가적인 설명은 일절 하지 말고, 오직 최종 인원 수를 나타내는 정수 숫자만 답변해주세요."]
+            + [chat_content_sample]
+        )
+
+        # Gemini의 응답(e.g., "15" 또는 "총 15명")에서 숫자만 추출하여 정수로 변환
+        numbers = re.findall(r'\d+', response.text)
+        if numbers:
+            return int(numbers[0])
+        else:
+            # 숫자를 찾지 못한 경우 기본값 반환
+            return 1
+
+    except Exception as e:
+        # API 호출 실패, 응답 파싱 실패 등 예외 발생 시
+        print(f"Gemini로 인원 수 분석 중 에러 발생: {e}")
+        # 기본값 혹은 에러 처리에 맞는 값을 반환합니다. 여기서는 1을 반환.
+        return 1
 
 # Create your views here.
 class BusChatView(APIView):
@@ -88,6 +127,11 @@ class BusChatView(APIView):
             # 파일 경로에서 제목 추출
             file_path = chat.file.path
             chat.title = extract_chat_title(file_path)
+
+            # 참여 인원 수를 Gemini API로 계산
+            num_of_people = count_chat_participants_with_gemini(file_path)
+            chat.people_num = num_of_people
+
             chat.save()
 
             response = ChatSerializerBus(chat)
@@ -156,6 +200,10 @@ class BusChatDetailView(APIView):
 
 
 
+###################################################################
+
+
+
 class BusChatContribAnalyzeView(APIView):
     @swagger_auto_schema(
         operation_id="채팅 기여 분석",
@@ -199,14 +247,10 @@ class BusChatContribAnalyzeView(APIView):
         analysis_date_start=serializer.validated_data["analysis_start"]
         analysis_date_end=serializer.validated_data["analysis_end"]
 
-        analysis_result_text = (
-            f"프로젝트 유형: {project_type}\n"
-            f"팀 유형: {team_type}\n"
-            f"분석 구간: {analysis_date_start} ~ {analysis_date_end}"
-        )
 
         result = ResultBusContrib.objects.create(
-            content=analysis_result_text,
+            title=chat.title,
+            people_num=chat.people_num,
             is_saved=1,
             project_type=project_type,
             team_type=team_type,
@@ -223,9 +267,14 @@ class BusChatContribAnalyzeView(APIView):
         )
 
 
+
+###################################################################
+
+
+
 class BusResultListView(APIView):
     @swagger_auto_schema(
-        operation_id="채팅 분석 결과 리스트 조회",
+        operation_id="채팅 분석 결과 전체 리스트 조회",
         operation_description="로그인된 유저의 채팅 분석 결과 리스트를 조회합니다.",
         manual_parameters=[
             openapi.Parameter(
@@ -234,7 +283,7 @@ class BusResultListView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ResultSerializerBus(many=True), 401: "Unauthorized"},
+        responses={200: ContribResultSerializerBus(many=True), 401: "Unauthorized"},
     )
     def get(self, request):
         # authenticated user check
@@ -244,12 +293,16 @@ class BusResultListView(APIView):
         
         # Get all analysis results for the logged-in user
         results = ResultBusContrib.objects.filter(chat__user = author)
-        serializer = ResultSerializerBus(results, many=True)
+        serializer = ContribResultSerializerBus(results, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
-class BusResultDetailView(APIView):
+###################################################################
+
+
+
+class BusContribResultDetailView(APIView):
     @swagger_auto_schema(
         operation_id="분석 결과 조회",
         operation_description="특정 분석 결과를 조회합니다.",
@@ -260,7 +313,7 @@ class BusResultDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ResultSerializerBus, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+        responses={200: ContribResultSerializerBus, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
     )
     def get(self, request, result_id):
         # authenticated user check
