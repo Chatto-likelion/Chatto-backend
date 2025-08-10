@@ -20,5 +20,5 @@ class ResultBusContrib(models.Model):
     team_type = models.TextField(default="")
     analysis_date_start = models.TextField(default="")
     analysis_date_end = models.TextField(default="")
-    created_at = models.DateField(default=timezone.now)
+    created_at = models.DateTimeField(default=timezone.now)
     chat = models.ForeignKey(ChatBus, on_delete=models.SET_NULL, null=True, blank=True)
