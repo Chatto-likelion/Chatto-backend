@@ -324,7 +324,7 @@ class BusContribResultDetailView(APIView):
             result = ResultBusContrib.objects.get(result_id=result_id)
             if result.chat.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
-            serializer = ResultSerializerBus(result)
+            serializer = ContribResultSerializerBus(result)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ResultBusContrib.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
