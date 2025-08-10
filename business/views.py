@@ -170,8 +170,8 @@ class BusChatView(APIView):
 
 class BusChatDetailView(APIView):
     @swagger_auto_schema(
-        operation_id="채팅 삭제",
-        operation_description="채팅을 삭제합니다.",
+        operation_id="특정 채팅 삭제",
+        operation_description="특정 채팅을 삭제합니다.",
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -249,6 +249,7 @@ class BusChatContribAnalyzeView(APIView):
 
 
         result = ResultBusContrib.objects.create(
+            type=1,
             title=chat.title,
             people_num=chat.people_num,
             is_saved=1,
@@ -272,40 +273,10 @@ class BusChatContribAnalyzeView(APIView):
 
 
 
-class BusResultListView(APIView):
-    @swagger_auto_schema(
-        operation_id="채팅 분석 결과 전체 리스트 조회",
-        operation_description="로그인된 유저의 채팅 분석 결과 리스트를 조회합니다.",
-        manual_parameters=[
-            openapi.Parameter(
-                "Authorization",
-                openapi.IN_HEADER, 
-                description="access token", 
-                type=openapi.TYPE_STRING),
-        ],
-        responses={200: ContribResultSerializerBus(many=True), 401: "Unauthorized"},
-    )
-    def get(self, request):
-        # authenticated user check
-        author = request.user
-        if not author.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        
-        # Get all analysis results for the logged-in user
-        results = ResultBusContrib.objects.filter(chat__user = author)
-        serializer = ContribResultSerializerBus(results, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
-###################################################################
-
-
-
 class BusContribResultDetailView(APIView):
     @swagger_auto_schema(
-        operation_id="분석 결과 조회",
-        operation_description="특정 분석 결과를 조회합니다.",
+        operation_id="특정 기여 분석 결과 조회",
+        operation_description="특정 기여 분석 결과를 조회합니다.",
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -330,8 +301,8 @@ class BusContribResultDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
-        operation_id="분석 결과 삭제",
-        operation_description="특정 분석 결과를 삭제합니다.",
+        operation_id="특정 기여 분석 결과 삭제",
+        operation_description="특정 기여 분석 결과를 삭제합니다.",
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -354,3 +325,38 @@ class BusContribResultDetailView(APIView):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except ResultBusContrib.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+
+###################################################################
+
+
+
+class BusResultAllView(APIView):
+    @swagger_auto_schema(
+        operation_id="모든 분석 결과 조회",
+        operation_description="로그인된 유저의 모든 분석 결과를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={200: "OK", 401: "Unauthorized"},
+    )
+    def get(self, request):
+        # authenticated user check
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        contrib_results = ResultBusContrib.objects.filter(chat__user=author)
+
+        contrib_serialized = ContribResultSerializerBus(contrib_results, many=True).data
+
+        combined = contrib_serialized
+
+        results = sorted(combined, key=lambda x: x["created_at"], reverse=True)
+
+        return Response(results, status=status.HTTP_200_OK)

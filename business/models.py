@@ -13,6 +13,7 @@ class ChatBus(models.Model):
     
 class ResultBusContrib(models.Model):
     result_id = models.AutoField(primary_key=True)
+    type = models.IntegerField(default=0)       
     title = models.TextField(default = "")
     people_num = models.IntegerField(default=0)
     is_saved = models.BooleanField(default=False)

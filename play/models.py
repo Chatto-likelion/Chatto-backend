@@ -13,6 +13,7 @@ class ChatPlay(models.Model):
 
 class ResultPlayChem(models.Model):
     result_id = models.AutoField(primary_key=True)
+    type = models.IntegerField(default=0)
     title = models.TextField(default = "")
     people_num = models.IntegerField(default=0)
     is_saved = models.BooleanField(default=False)
@@ -25,6 +26,7 @@ class ResultPlayChem(models.Model):
 
 class ResultPlaySome(models.Model):
     result_id = models.AutoField(primary_key=True)
+    type = models.IntegerField(default=0)
     title = models.TextField(default = "")
     people_num = models.IntegerField(default=0)
     is_saved = models.BooleanField(default=False)
@@ -37,6 +39,7 @@ class ResultPlaySome(models.Model):
 
 class ResultPlayMBTI(models.Model):
     result_id = models.AutoField(primary_key=True)
+    type = models.IntegerField(default=0)
     title = models.TextField(default = "")
     people_num = models.IntegerField(default=0)
     is_saved = models.BooleanField(default=False)

@@ -187,8 +187,8 @@ class PlayChatView(APIView):
 
 class PlayChatDetailView(APIView):
     @swagger_auto_schema(
-        operation_id="채팅 삭제",
-        operation_description="채팅을 삭제합니다.",
+        operation_id="특정 채팅 삭제",
+        operation_description="특정 채팅을 삭제합니다.",
         manual_parameters=[
             openapi.Parameter(
                 "Authorization",
@@ -264,6 +264,7 @@ class PlayChatChemAnalyzeView(APIView):
 
 
         result = ResultPlayChem.objects.create(
+            type=1,
             is_saved=1,
             relationship=relationship,
             situation=situation,
@@ -326,6 +327,7 @@ class PlayChatSomeAnalyzeView(APIView):
 
 
         result = ResultPlaySome.objects.create(
+            type=2,
             title=chat.title,
             people_num=chat.people_num,
             is_saved=1,
@@ -427,6 +429,7 @@ class PlayChatMBTIAnalyzeView(APIView):
 
 
         result = ResultPlayMBTI.objects.create(
+            type=3,
             title=chat.title,
             people_num=chat.people_num,
             is_saved=1,
@@ -480,81 +483,81 @@ class PlayChatMBTIAnalyzeView(APIView):
 
 
 
-class PlayChemResultListView(APIView):
-    @swagger_auto_schema(
-        operation_id="채팅 케미 분석 결과 리스트 조회",
-        operation_description="로그인된 유저의 채팅 케미 분석 결과 리스트를 조회합니다.",
-        manual_parameters=[
-            openapi.Parameter(
-                "Authorization",
-                openapi.IN_HEADER, 
-                description="access token", 
-                type=openapi.TYPE_STRING),
-        ],
-        responses={200: ChemResultSerializerPlay(many=True), 401: "Unauthorized"},
-    )
-    def get(self, request):
-        # authenticated user check
-        author = request.user
-        if not author.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
+# class PlayChemResultListView(APIView):
+#     @swagger_auto_schema(
+#         operation_id="채팅 케미 분석 결과 리스트 조회",
+#         operation_description="로그인된 유저의 채팅 케미 분석 결과 리스트를 조회합니다.",
+#         manual_parameters=[
+#             openapi.Parameter(
+#                 "Authorization",
+#                 openapi.IN_HEADER, 
+#                 description="access token", 
+#                 type=openapi.TYPE_STRING),
+#         ],
+#         responses={200: ChemResultSerializerPlay(many=True), 401: "Unauthorized"},
+#     )
+#     def get(self, request):
+#         # authenticated user check
+#         author = request.user
+#         if not author.is_authenticated:
+#             return Response(status=status.HTTP_401_UNAUTHORIZED)
         
-        # Get all analysis results for the logged-in user
-        results = ResultPlayChem.objects.filter(chat__user = author)
-        serializer = ChemResultSerializerPlay(results, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+#         # Get all analysis results for the logged-in user
+#         results = ResultPlayChem.objects.filter(chat__user = author)
+#         serializer = ChemResultSerializerPlay(results, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
-class PlaySomeResultListView(APIView):
-    @swagger_auto_schema(
-        operation_id="채팅 썸 분석 결과 리스트 조회",
-        operation_description="로그인된 유저의 채팅 썸 분석 결과 리스트를 조회합니다.",
-        manual_parameters=[
-            openapi.Parameter(
-                "Authorization",
-                openapi.IN_HEADER, 
-                description="access token", 
-                type=openapi.TYPE_STRING),
-        ],
-        responses={200: SomeResultSerializerPlay(many=True), 401: "Unauthorized"},
-    )
-    def get(self, request):
-        # authenticated user check
-        author = request.user
-        if not author.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
+# class PlaySomeResultListView(APIView):
+#     @swagger_auto_schema(
+#         operation_id="채팅 썸 분석 결과 리스트 조회",
+#         operation_description="로그인된 유저의 채팅 썸 분석 결과 리스트를 조회합니다.",
+#         manual_parameters=[
+#             openapi.Parameter(
+#                 "Authorization",
+#                 openapi.IN_HEADER, 
+#                 description="access token", 
+#                 type=openapi.TYPE_STRING),
+#         ],
+#         responses={200: SomeResultSerializerPlay(many=True), 401: "Unauthorized"},
+#     )
+#     def get(self, request):
+#         # authenticated user check
+#         author = request.user
+#         if not author.is_authenticated:
+#             return Response(status=status.HTTP_401_UNAUTHORIZED)
         
-        # Get all analysis results for the logged-in user
-        results = ResultPlaySome.objects.filter(chat__user = author)
-        serializer = SomeResultSerializerPlay(results, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+#         # Get all analysis results for the logged-in user
+#         results = ResultPlaySome.objects.filter(chat__user = author)
+#         serializer = SomeResultSerializerPlay(results, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
-class PlayMBTIResultListView(APIView):
-    @swagger_auto_schema(
-        operation_id="채팅 MBTI 분석 결과 리스트 조회",
-        operation_description="로그인된 유저의 채팅 MBTI 분석 결과 리스트를 조회합니다.",
-        manual_parameters=[
-            openapi.Parameter(
-                "Authorization",
-                openapi.IN_HEADER, 
-                description="access token", 
-                type=openapi.TYPE_STRING),
-        ],
-        responses={200: MBTIResultSerializerPlay(many=True), 401: "Unauthorized"},
-    )
-    def get(self, request):
-        # authenticated user check
-        author = request.user
-        if not author.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
+# class PlayMBTIResultListView(APIView):
+#     @swagger_auto_schema(
+#         operation_id="채팅 MBTI 분석 결과 리스트 조회",
+#         operation_description="로그인된 유저의 채팅 MBTI 분석 결과 리스트를 조회합니다.",
+#         manual_parameters=[
+#             openapi.Parameter(
+#                 "Authorization",
+#                 openapi.IN_HEADER, 
+#                 description="access token", 
+#                 type=openapi.TYPE_STRING),
+#         ],
+#         responses={200: MBTIResultSerializerPlay(many=True), 401: "Unauthorized"},
+#     )
+#     def get(self, request):
+#         # authenticated user check
+#         author = request.user
+#         if not author.is_authenticated:
+#             return Response(status=status.HTTP_401_UNAUTHORIZED)
         
-        # Get all analysis results for the logged-in user
-        results = ResultPlayMBTI.objects.filter(chat__user = author)
-        serializer = MBTIResultSerializerPlay(results, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+#         # Get all analysis results for the logged-in user
+#         results = ResultPlayMBTI.objects.filter(chat__user = author)
+#         serializer = MBTIResultSerializerPlay(results, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
@@ -564,7 +567,7 @@ class PlayMBTIResultListView(APIView):
 
 class PlayChemResultDetailView(APIView):
     @swagger_auto_schema(
-        operation_id="케미 분석 결과 조회",
+        operation_id="특정 케미 분석 결과 조회",
         operation_description="특정 케미 분석 결과를 조회합니다.",
         manual_parameters=[
             openapi.Parameter(
@@ -590,7 +593,7 @@ class PlayChemResultDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
-        operation_id="케미 분석 결과 삭제",
+        operation_id="특정 케미 분석 결과 삭제",
         operation_description="특정 케미 분석 결과를 삭제합니다.",
         manual_parameters=[
             openapi.Parameter(
@@ -619,7 +622,7 @@ class PlayChemResultDetailView(APIView):
      
 class PlaySomeResultDetailView(APIView):
     @swagger_auto_schema(
-        operation_id="썸 분석 결과 조회",
+        operation_id="특정 썸 분석 결과 조회",
         operation_description="특정 썸 분석 결과를 조회합니다.",
         manual_parameters=[
             openapi.Parameter(
@@ -654,7 +657,7 @@ class PlaySomeResultDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
-        operation_id="썸 분석 결과 삭제",
+        operation_id="특정 썸 분석 결과 삭제",
         operation_description="특정 썸 분석 결과를 삭제합니다.",
         manual_parameters=[
             openapi.Parameter(
@@ -683,7 +686,7 @@ class PlaySomeResultDetailView(APIView):
 
 class PlayMBTIResultDetailView(APIView):
     @swagger_auto_schema(
-        operation_id="MBTI 분석 결과 조회",
+        operation_id="특정 MBTI 분석 결과 조회",
         operation_description="특정 MBTI 분석 결과를 조회합니다.",
         manual_parameters=[
             openapi.Parameter(
@@ -721,7 +724,7 @@ class PlayMBTIResultDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
-        operation_id="MBTI 분석 결과 삭제",
+        operation_id="특정 MBTI 분석 결과 삭제",
         operation_description="특정 MBTI 분석 결과를 삭제합니다.",
         manual_parameters=[
             openapi.Parameter(
@@ -745,3 +748,47 @@ class PlayMBTIResultDetailView(APIView):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except ResultPlayMBTI.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+
+###################################################################
+
+
+
+class PlayResultAllView(APIView):
+    @swagger_auto_schema(
+        operation_id="모든 분석 결과 조회",
+        operation_description="로그인된 유저의 모든 분석 결과를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER, 
+                description="access token", 
+                type=openapi.TYPE_STRING),
+        ],
+        responses={
+            200: "OK",
+            401: "Unauthorized"
+        },
+    )
+    def get(self, request):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        chem_results = ResultPlayChem.objects.filter(chat__user=author)
+        some_results = ResultPlaySome.objects.filter(chat__user=author)
+        mbti_results = ResultPlayMBTI.objects.filter(chat__user=author)
+
+        # 모델별 직렬화 
+        chem_serialized = ChemResultSerializerPlay(chem_results, many=True).data
+        some_serialized = SomeResultSerializerPlay(some_results, many=True).data
+        mbti_serialized = MBTIResultSerializerPlay(mbti_results, many=True).data
+
+        # 하나의 리스트로 합치기
+        combined = chem_serialized + some_serialized + mbti_serialized
+
+        # created_at 기준 내림차순 정렬
+        results = sorted(combined, key=lambda x: x["created_at"], reverse=True)
+
+        return Response(results, status=status.HTTP_200_OK)
