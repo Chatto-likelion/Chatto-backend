@@ -266,6 +266,8 @@ class PlayChatChemAnalyzeView(APIView):
         result = ResultPlayChem.objects.create(
             type=1,
             is_saved=1,
+            title=chat.title,
+            people_num=chat.people_num,
             relationship=relationship,
             situation=situation,
             analysis_date_start=analysis_start,
