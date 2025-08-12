@@ -23,4 +23,13 @@ class ProfileEditRequestSerializer(serializers.Serializer):
 
 class TokenRefreshRequestSerializer(serializers.Serializer):
     refresh = serializers.CharField()
+
+class CreditPurchaseRequestSerializer(serializers.Serializer):
+    amount = serializers.IntegerField()
+    payment = serializers.IntegerField()
+
+class CreditUsageRequestSerializer(serializers.Serializer):
+    amount = serializers.IntegerField()
+    usage = serializers.CharField()
+    purpose = serializers.CharField()
     

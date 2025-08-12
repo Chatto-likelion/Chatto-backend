@@ -1,6 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 from django.contrib.auth.models import User
-from .models import UserProfile
+from .models import UserProfile, CreditPurchase, CreditUsage
 from rest_framework import serializers
 
 
@@ -22,3 +22,12 @@ class UserProfileSerializer(ModelSerializer):
         model = UserProfile
         fields = "__all__"
 
+class CreditPurchaseSerializer(ModelSerializer):
+    class Meta:
+        model = CreditPurchase
+        fields = "__all__"
+
+class CreditUsageSerializer(ModelSerializer):
+    class Meta:
+        model = CreditUsage
+        fields = "__all__"
