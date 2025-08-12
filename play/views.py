@@ -320,6 +320,11 @@ class PlayChatChemAnalyzeView(APIView):
             chatto_analysis="",
             chatto_levelup="",
             chatto_levelup_tips="",
+            name_0="",
+            name_1="",
+            name_2="",
+            name_3="",
+            name_4="",
         )
 
         for i in range(spec.tablesize):
