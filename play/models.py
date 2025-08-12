@@ -86,6 +86,11 @@ class ResultPlayChemSpec(models.Model):
     chatto_analysis = models.TextField(default="")
     chatto_levelup = models.TextField(default="")
     chatto_levelup_tips = models.TextField(default="")
+    name_0 = models.TextField(default="")
+    name_1 = models.TextField(default="")
+    name_2 = models.TextField(default="")
+    name_3 = models.TextField(default="")
+    name_4 = models.TextField(default="")
 
 class ResultPlayChemSpecTable(models.Model):
     spectable_id = models.AutoField(primary_key=True)
