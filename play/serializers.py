@@ -7,7 +7,9 @@ from .models import(
     ResultPlayMBTI,
     ResultPlaySomeSpec,
     ResultPlayMBTISpec,
-    ResultPlayMBTISpecPersonal
+    ResultPlayMBTISpecPersonal,
+    ResultPlayChemSpec,
+    ResultPlayChemSpecTable
 ) 
 
 class AnalyseResponseSerializerPlay(serializers.Serializer):
@@ -36,6 +38,16 @@ class MBTIResultSerializerPlay(ModelSerializer):
 
 ###################################################################
 
+class ChemSpecSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ResultPlayChemSpec
+        fields = "__all__"
+
+class ChemSpecTableSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ResultPlayChemSpecTable
+        fields = "__all__"
+       
 class SomeSpecSerializerPlay(ModelSerializer):
     class Meta:
         model = ResultPlaySomeSpec
@@ -60,4 +72,9 @@ class SomeAllSerializerPlay(serializers.Serializer):
 class MBTIAllSerializerPlay(serializers.Serializer):
     result = MBTIResultSerializerPlay()
     spec = MBTISpecSerializerPlay()
-    spec_personal = MBTISpecPersonalSerializerPlay()
+    spec_personal = MBTISpecPersonalSerializerPlay(many=True)
+
+class ChemAllSerializerPlay(serializers.Serializer):
+    result = ChemResultSerializerPlay()
+    spec = ChemSpecSerializerPlay()
+    spec_table = ChemSpecTableSerializerPlay(many=True)

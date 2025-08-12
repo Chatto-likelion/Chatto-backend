@@ -23,3 +23,36 @@ class ResultBusContrib(models.Model):
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
     chat = models.ForeignKey(ChatBus, on_delete=models.SET_NULL, null=True, blank=True)
+
+class ResultBusContribSpec(models.Model):
+    spec_id = models.AutoField(primary_key=True)
+    result = models.ForeignKey(ResultBusContrib, on_delete=models.CASCADE)
+    total_talks = models.IntegerField(default=0)
+    leader = models.TextField(default="")
+    avg_resp = models.IntegerField(default=0)
+    insights = models.TextField(default="")
+    recommendation = models.TextField(default="")
+    analysis_size = models.IntegerField(default=0)
+
+class ResultBusContribSpecPersonal(models.Model):
+    specpersonal_id = models.AutoField(primary_key=True)
+    spec = models.ForeignKey(ResultBusContribSpec, on_delete=models.CASCADE)
+    name = models.TextField(default="")
+    rank = models.IntegerField(default=0)
+    participation = models.IntegerField(default=0)
+    infoshare = models.IntegerField(default=0)
+    probsolve = models.IntegerField(default=0)
+    resptime = models.IntegerField(default=0)
+    type = models.TextField(default="")
+
+class ResultBusContribSpecPeriod(models.Model):
+    specperiod_id = models.AutoField(primary_key=True)
+    spec = models.ForeignKey(ResultBusContribSpec, on_delete=models.CASCADE)
+    name = models.TextField(default="")
+    analysis = models.TextField(default="")
+    pediod_1 = models.IntegerField(default=0)
+    period_2 = models.IntegerField(default=0)
+    period_3 = models.IntegerField(default=0)
+    period_4 = models.IntegerField(default=0)
+    period_5 = models.IntegerField(default=0)
+    period_6 = models.IntegerField(default=0)
