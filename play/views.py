@@ -21,7 +21,8 @@ from .serializers import (
     SomeResultSerializerPlay,
     MBTIResultSerializerPlay,
     SomeAllSerializerPlay,
-    MBTIAllSerializerPlay
+    MBTIAllSerializerPlay,
+    ChemAllSerializerPlay
 )
 
 from .models import(
@@ -32,7 +33,9 @@ from .models import(
     ResultPlaySomeSpec,
     ResultPlayMBTISpec,
     ResultPlayMBTISpecPersonal,
-)
+    ResultPlayChemSpec,
+    ResultPlayChemSpecTable,
+)   
 
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -275,6 +278,63 @@ class PlayChatChemAnalyzeView(APIView):
             chat=chat,
         )
 
+        if result.people_num >= 5:
+            size = 5
+        else:
+            size = result.people_num
+
+        spec = ResultPlayChemSpec.objects.create(
+            result=result,
+            score_main=0,
+            summary_main="",
+            tablesize=size,
+            top1_A="",
+            top1_B="",
+            top1_score=0,
+            top1_comment="",
+            top2_A="",
+            top2_B="",
+            top2_score=0,
+            top2_comment="",
+            top3_A="",
+            top3_B="",
+            top3_score=0,
+            top3_comment="",
+            tone_pos=0,
+            tone_humer=0,
+            tone_else=0,
+            tone_ex="",
+            resp_time=0,
+            resp_ratio=0,
+            ignore=0,
+            resp_analysis="",
+            topic1="",
+            topic1_ratio=0,
+            topic2="",
+            topic2_ratio=0,
+            topic3="",
+            topic3_ratio=0,
+            topic4="",
+            topic4_ratio=0,
+            topicelse_ratio=0,
+            chatto_analysis="",
+            chatto_levelup="",
+            chatto_levelup_tips="",
+        )
+
+        for i in range(spec.tablesize):
+            for j in range(spec.tablesize):
+                if i == j:
+                    val = 0
+                else:
+                    val = 1
+                ResultPlayChemSpecTable.objects.create(
+                    spec=spec,
+                    row=i,
+                    column=j,
+                    interaction=val,
+                )
+
         return Response(
             {
                 "result_id": result.result_id,
@@ -452,25 +512,27 @@ class PlayChatMBTIAnalyzeView(APIView):
             total_P=0,
         )
 
-        ResultPlayMBTISpecPersonal.objects.create(
-            spec=spec,
-            MBTI="",
-            summary="",
-            desc="",
-            position="",
-            personality="",
-            style="",
-            moment_ex="",
-            moment_desc="",
-            momentIE_ex="",
-            momentIE_desc="",
-            momentSN_ex="",
-            momentSN_desc="",
-            momentFT_ex="",
-            momentFT_desc="",
-            momentJP_ex="",
-            momentJP_desc="",
-        )
+        for _ in range (chat.people_num):
+            ResultPlayMBTISpecPersonal.objects.create(
+                spec=spec,
+                name="이름",
+                MBTI="",
+                summary="",
+                desc="",
+                position="",
+                personality="",
+                style="",
+                moment_ex="",
+                moment_desc="",
+                momentIE_ex="",
+                momentIE_desc="",
+                momentSN_ex="",
+                momentSN_desc="",
+                momentFT_ex="",
+                momentFT_desc="",
+                momentJP_ex="",
+                momentJP_desc="",
+            )
 
         return Response(
             {
@@ -578,7 +640,7 @@ class PlayChemResultDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ChemResultSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+        responses={200: ChemAllSerializerPlay, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
     )
     def get(self, request, result_id):
         # authenticated user check
@@ -589,9 +651,18 @@ class PlayChemResultDetailView(APIView):
             result = ResultPlayChem.objects.get(result_id=result_id)
             if result.chat.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
-            serializer = ChemResultSerializerPlay(result)
+            
+            spec = ResultPlayChemSpec.objects.get(result=result)
+            spec_tables = ResultPlayChemSpecTable.objects.filter(spec=spec)
+            payload = {
+                "result": result,
+                "spec": spec,
+                "spec_table": list(spec_tables),
+            }
+            serializer = ChemAllSerializerPlay(payload)
+
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except ResultPlayChem.DoesNotExist:
+        except:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
@@ -655,7 +726,7 @@ class PlaySomeResultDetailView(APIView):
             serializer = SomeAllSerializerPlay(payload)
 
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except ResultPlaySome.DoesNotExist:
+        except:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
@@ -711,18 +782,18 @@ class PlayMBTIResultDetailView(APIView):
                 return Response(status=status.HTTP_403_FORBIDDEN)
             
             spec = ResultPlayMBTISpec.objects.get(result=result)
-            spec_personal = ResultPlayMBTISpecPersonal.objects.get(spec=spec)
+            spec_personals = ResultPlayMBTISpecPersonal.objects.filter(spec=spec)
             
             payload = {
                 "result": result,
                 "spec": spec,
-                "spec_personal": spec_personal,
+                "spec_personal": list(spec_personals),
             }
 
             serializer = MBTIAllSerializerPlay(payload)
 
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except ResultPlayMBTI.DoesNotExist:
+        except:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(

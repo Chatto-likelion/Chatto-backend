@@ -16,10 +16,16 @@ from .serializers import (
     AnalyseResponseSerializerBus,
     ChatSerializerBus,
     ContribResultSerializerBus,
+    ContribAllSerializerBus
 )
 
-from .models import ChatBus, ResultBusContrib
-
+from .models import (
+    ChatBus, 
+    ResultBusContrib,
+    ResultBusContribSpec,
+    ResultBusContribSpecPersonal,
+    ResultBusContribSpecPeriod,
+)
 from rest_framework.parsers import MultiPartParser, FormParser
 
 from django.utils import timezone
@@ -260,6 +266,90 @@ class BusChatContribAnalyzeView(APIView):
             chat=chat,
         )
 
+        size = 5 if chat.people_num >= 5 else chat.people_num
+
+        spec = ResultBusContribSpec.objects.create(
+            result=result,
+            total_talks=0,  
+            leader="",  
+            avg_resp=0,  
+            insights="",  
+            recommendation="",  
+            analysis_size=size,
+        )
+
+        for i in range(size):
+            ResultBusContribSpecPersonal.objects.create(
+                spec=spec,
+                name=f"이름{i}",
+                rank=i,
+                participation=0,
+                infoshare=0,
+                probsolve=0,
+                resptime=0,
+                type="",
+            )
+
+            ResultBusContribSpecPeriod.objects.create(
+                spec=spec,
+                name=f"이름{i}",
+                analysis="종합 참여 점수",
+                pediod_1=0,
+                period_2=0,
+                period_3=0,
+                period_4=0,
+                period_5=0,
+                period_6=0,
+            )
+
+            ResultBusContribSpecPeriod.objects.create(
+                spec=spec,
+                name=f"이름{i}",
+                analysis="정보 공유",
+                pediod_1=0,
+                period_2=0,
+                period_3=0,
+                period_4=0,
+                period_5=0,
+                period_6=0,
+            )
+
+            ResultBusContribSpecPeriod.objects.create(
+                spec=spec,
+                name=f"이름{i}",
+                analysis="문제 해결 참여",
+                pediod_1=0,
+                period_2=0,
+                period_3=0,
+                period_4=0,
+                period_5=0,
+                period_6=0,
+            )
+
+            ResultBusContribSpecPeriod.objects.create(
+                spec=spec,
+                name=f"이름{i}",
+                analysis="주도적 제안",
+                pediod_1=0,
+                period_2=0,
+                period_3=0,
+                period_4=0,
+                period_5=0,
+                period_6=0,
+            )
+
+            ResultBusContribSpecPeriod.objects.create(
+                spec=spec,
+                name=f"이름{i}",
+                analysis="응답 속도",
+                pediod_1=0,
+                period_2=0,
+                period_3=0,
+                period_4=0,
+                period_5=0,
+                period_6=0,
+            )
+
         return Response(
             {
                 "result_id": result.result_id,
@@ -284,7 +374,7 @@ class BusContribResultDetailView(APIView):
                 description="access token", 
                 type=openapi.TYPE_STRING),
         ],
-        responses={200: ContribResultSerializerBus, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
+        responses={200: ContribAllSerializerBus, 404: "Not Found", 401: "Unauthorized", 403: "Forbidden"},
     )
     def get(self, request, result_id):
         # authenticated user check
@@ -295,9 +385,21 @@ class BusContribResultDetailView(APIView):
             result = ResultBusContrib.objects.get(result_id=result_id)
             if result.chat.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
-            serializer = ContribResultSerializerBus(result)
+            
+            spec = ResultBusContribSpec.objects.get(result=result)
+            spec_personals = ResultBusContribSpecPersonal.objects.filter(spec=spec)
+            spec_periods = ResultBusContribSpecPeriod.objects.filter(spec=spec)
+
+            payload = {
+                "result": result,
+                "spec": spec,
+                "spec_personal": list(spec_personals),
+                "spec_period": list(spec_periods),
+            }
+            serializer = ContribAllSerializerBus(payload)
+            
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except ResultBusContrib.DoesNotExist:
+        except:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
