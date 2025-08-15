@@ -135,8 +135,8 @@ class ResultPlaySomeSpec(models.Model):
     atti_A_ex = models.TextField(default="")
     atti_B_ex = models.TextField(default="")
     pattern_analysis = models.TextField(default="")
-    chatto_coundel = models.TextField(default="")
-    chatto_coundel_tips = models.TextField(default="")
+    chatto_counsel = models.TextField(default="")
+    chatto_counsel_tips = models.TextField(default="")
 
 class ResultPlayMBTISpec(models.Model):
     spec_id = models.AutoField(primary_key=True)
