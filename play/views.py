@@ -13,6 +13,15 @@ from .request_serializers import (
     ChatChemAnalysisRequestSerializerPlay,
     ChatSomeAnalysisRequestSerializerPlay,
     ChatMBTIAnalysisRequestSerializerPlay,
+    ChemQuizSubmissionRequestSerializerPlay,
+    ChemQuizSolveDetailRequestSerializerPlay,
+    ChemQuizSolveDetailRequestSerializerPlay,
+    ChemQuizStartRequestSerializerPlay,
+    ChemQuizResultViewRequestSerializerPlay,
+    ChemQuizPersonalViewRequestSerializerPlay,
+    ChemQuizModifyRequestSerializerPlay,
+    ChemQuizSubmitRequestSerializerPlay,
+    ChatTitleModifyRequestSerializerPlay,
 )
 from .serializers import (
     AnalyseResponseSerializerPlay,
@@ -22,7 +31,13 @@ from .serializers import (
     MBTIResultSerializerPlay,
     SomeAllSerializerPlay,
     MBTIAllSerializerPlay,
-    ChemAllSerializerPlay
+    ChemAllSerializerPlay,
+    QuizCreatedSerializerPlay,
+    ChemQuizQuestionSerializerPlay,
+    ChemQuizInfoSerializerPlay,
+    ChemQuizPersonalSerializerPlay,
+    ChemQuizQuestionDetailSerializerPlay,
+    ChemQuizPersonalDetailSerializerPlay,
 )
 
 from .models import(
@@ -35,6 +50,10 @@ from .models import(
     ResultPlayMBTISpecPersonal,
     ResultPlayChemSpec,
     ResultPlayChemSpecTable,
+    ChemQuiz,
+    ChemQuizQuestion,
+    ChemQuizPersonal,
+    ChemQuizPersonalDetail,
 )   
 
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -102,7 +121,7 @@ def count_chat_participants_with_gemini(file_path: str) -> int:
         # 기본값 혹은 에러 처리에 맞는 값을 반환합니다. 여기서는 1을 반환.
         return 1
     
-# Create your views here.
+
 class PlayChatView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     @swagger_auto_schema(
@@ -216,7 +235,46 @@ class PlayChatDetailView(APIView):
         except ChatPlay.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+    @swagger_auto_schema(
+        operation_id="특정 채팅 제목 수정",
+        operation_description="특정 채팅의 제목을 수정합니다.",
+        request_body=ChatTitleModifyRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: "OK",
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found"
+        },
+    )
+    def put(self, request, chat_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
 
+        try:
+            chat = ChatPlay.objects.get(chat_id=chat_id)
+            if chat.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        except ChatPlay.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        request_serializer = ChatTitleModifyRequestSerializerPlay(data=request.data)
+        if request_serializer.is_valid() is False:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        chat.title = request_serializer.validated_data["title"]
+        chat.save()
+
+        return Response(status=status.HTTP_200_OK)
 
 ##################################################################
 
@@ -552,88 +610,6 @@ class PlayChatMBTIAnalyzeView(APIView):
 
 
 
-# class PlayChemResultListView(APIView):
-#     @swagger_auto_schema(
-#         operation_id="채팅 케미 분석 결과 리스트 조회",
-#         operation_description="로그인된 유저의 채팅 케미 분석 결과 리스트를 조회합니다.",
-#         manual_parameters=[
-#             openapi.Parameter(
-#                 "Authorization",
-#                 openapi.IN_HEADER, 
-#                 description="access token", 
-#                 type=openapi.TYPE_STRING),
-#         ],
-#         responses={200: ChemResultSerializerPlay(many=True), 401: "Unauthorized"},
-#     )
-#     def get(self, request):
-#         # authenticated user check
-#         author = request.user
-#         if not author.is_authenticated:
-#             return Response(status=status.HTTP_401_UNAUTHORIZED)
-        
-#         # Get all analysis results for the logged-in user
-#         results = ResultPlayChem.objects.filter(chat__user = author)
-#         serializer = ChemResultSerializerPlay(results, many=True)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
-# class PlaySomeResultListView(APIView):
-#     @swagger_auto_schema(
-#         operation_id="채팅 썸 분석 결과 리스트 조회",
-#         operation_description="로그인된 유저의 채팅 썸 분석 결과 리스트를 조회합니다.",
-#         manual_parameters=[
-#             openapi.Parameter(
-#                 "Authorization",
-#                 openapi.IN_HEADER, 
-#                 description="access token", 
-#                 type=openapi.TYPE_STRING),
-#         ],
-#         responses={200: SomeResultSerializerPlay(many=True), 401: "Unauthorized"},
-#     )
-#     def get(self, request):
-#         # authenticated user check
-#         author = request.user
-#         if not author.is_authenticated:
-#             return Response(status=status.HTTP_401_UNAUTHORIZED)
-        
-#         # Get all analysis results for the logged-in user
-#         results = ResultPlaySome.objects.filter(chat__user = author)
-#         serializer = SomeResultSerializerPlay(results, many=True)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
-# class PlayMBTIResultListView(APIView):
-#     @swagger_auto_schema(
-#         operation_id="채팅 MBTI 분석 결과 리스트 조회",
-#         operation_description="로그인된 유저의 채팅 MBTI 분석 결과 리스트를 조회합니다.",
-#         manual_parameters=[
-#             openapi.Parameter(
-#                 "Authorization",
-#                 openapi.IN_HEADER, 
-#                 description="access token", 
-#                 type=openapi.TYPE_STRING),
-#         ],
-#         responses={200: MBTIResultSerializerPlay(many=True), 401: "Unauthorized"},
-#     )
-#     def get(self, request):
-#         # authenticated user check
-#         author = request.user
-#         if not author.is_authenticated:
-#             return Response(status=status.HTTP_401_UNAUTHORIZED)
-        
-#         # Get all analysis results for the logged-in user
-#         results = ResultPlayMBTI.objects.filter(chat__user = author)
-#         serializer = MBTIResultSerializerPlay(results, many=True)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
-##################################################################
-
-
-
 class PlayChemResultDetailView(APIView):
     @swagger_auto_schema(
         operation_id="특정 케미 분석 결과 조회",
@@ -870,3 +846,539 @@ class PlayResultAllView(APIView):
         results = sorted(combined, key=lambda x: x["created_at"], reverse=True)
 
         return Response(results, status=status.HTTP_200_OK)
+    
+
+
+###################################################################
+
+
+# 케미 퀴즈 생성, 케미 퀴즈 조회, 케미 퀴즈 삭제
+class PlayChemQuizView(APIView):
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 생성",
+        operation_description="특정 케미 분석 결과에 대한 퀴즈를 생성합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            201: QuizCreatedSerializerPlay(many=True),
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found"
+        },
+    )
+    def post(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+        except ResultPlayChem.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if result.chat.user != author:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        # spec과 spec_tables을 가져온 이유: 이거 보고 퀴즈 생성! (물론 chat의 내용도 보고)
+        spec = ResultPlayChemSpec.objects.get(result=result)
+        spec_tables = ResultPlayChemSpecTable.objects.filter(spec=spec)
+
+        if ChemQuiz.objects.filter(result=result).exists():
+            return Response({"detail": "이미 해당 분석 결과에 대한 퀴즈가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        quiz = ChemQuiz.objects.create(
+            result=result,
+            question_num=3,
+            solved_num=0,
+            avg_score=0,
+        )
+
+        for i in range(quiz.question_num):
+            ChemQuizQuestion.objects.create(
+                quiz=quiz,
+                question_index=i,
+                question=f"{i}번째 질문 내용",
+                choice1="선택지 1",
+                choice2="선택지 2",
+                choice3="선택지 3",
+                choice4="선택지 4",
+                answer=1,
+                correct_num=0,
+                count1=0,
+                count2=0,
+                count3=0,
+                count4=0,
+            )
+        
+        return Response(
+            {
+                "quiz_id": quiz.quiz_id,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 조회",
+        operation_description="특정 케미 분석 결과에 대한 퀴즈를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: ChemQuizInfoSerializerPlay,
+            401: "Unauthorized",
+            404: "Not Found",
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = ChemQuizInfoSerializerPlay(quiz)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 삭제",
+        operation_description="특정 케미 분석 결과에 대한 퀴즈를 삭제합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            204: "No Content",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found"
+        },
+    )
+    def delete(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if result.chat.user != author:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        quiz.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# 케미 퀴즈 문제 리스트 상세 조회
+class PlayChemQuizQuestionListDetailView(APIView):
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 문제 리스트 상세 조회",
+        operation_description="특정 케미 분석 결과에 대한 퀴즈의 문제 리스트를 상세 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: ChemQuizQuestionDetailSerializerPlay(many=True),
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+            questions = ChemQuizQuestion.objects.filter(quiz=quiz)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = ChemQuizQuestionDetailSerializerPlay(questions, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# 케미 퀴즈 문제 리스트 조회
+class PlayChemQuizQuestionListView(APIView):
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 문제 리스트 조회",
+        operation_description="특정 케미 분석 결과에 대한 퀴즈의 문제 리스트를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: ChemQuizQuestionSerializerPlay(many=True),
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+            questions = ChemQuizQuestion.objects.filter(quiz=quiz).order_by('question_index')
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = ChemQuizQuestionSerializerPlay(questions, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+# 케미 퀴즈 풀이 시작
+class PlayChemQuizStartView(APIView):
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 풀이 시작",
+        operation_description="케미 퀴즈 풀이를 시작합니다.",
+        request_body=ChemQuizStartRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            201: "Created",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def post(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        serializer = ChemQuizStartRequestSerializerPlay(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        name = serializer.validated_data["name"]
+
+        if ChemQuizPersonal.objects.filter(quiz__result__result_id=result_id, name=name).exists():
+            return Response({"detail": "이미 해당 이름의 퀴즈 풀이가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        ChemQuizPersonal.objects.create(
+            quiz=quiz,
+            name=name,
+            score=0,  # 초기 점수는 0
+        )
+
+        return Response(status=status.HTTP_201_CREATED)
+
+
+# 케미 퀴즈 결과 (문제별 리스트) 한 사람 조회, 케미 퀴즈 결과 한 사람 삭제
+class PlayChemQuizPersonalView(APIView):
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 결과 (문제별 리스트) 한 사람 조회",
+        operation_description="케미 퀴즈 결과를 한 사람 기준으로 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: ChemQuizPersonalSerializerPlay,
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id, name):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+            quiz_personal = ChemQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal_details = ChemQuizPersonalDetail.objects.filter(QP=quiz_personal)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = ChemQuizPersonalDetailSerializerPlay(quiz_personal_details, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 결과 한 사람 삭제",
+        operation_description="케미 퀴즈 결과를 한 사람 기준으로 삭제합니다.",
+        request_body=ChemQuizPersonalViewRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            204: "No Content",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def delete(self, request, result_id, name):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+            quiz_personal = ChemQuizPersonal.objects.get(quiz=quiz, name=name)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        quiz_personal.delete()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# 케미 퀴즈 풀이 제출 (여러 문제 답변을 한 번에 제출)
+class PlayChemQuizSubmitView(APIView):
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 제출",
+        operation_description="케미 퀴즈 풀이를 제출합니다. (여러 문제 답변을 한 번에 제출)",
+        request_body=ChemQuizSubmitRequestSerializerPlay(many=True),
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: "OK",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def post(self, request, result_id, name):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        request_serializer = ChemQuizSubmitRequestSerializerPlay(data=request.data, many=True)
+
+        if not request_serializer.is_valid():
+            return Response(request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+            quiz_personal = ChemQuizPersonal.objects.get(quiz=quiz, name=name)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        answers = request_serializer.validated_data
+
+        if len(answers) != quiz.question_num:
+            return Response({"detail": "제출한 답변의 수가 문제 수와 일치하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        i = 0
+        for answer in answers:
+            response = int(answer['answer'])
+
+            try:
+                question = ChemQuizQuestion.objects.get(quiz=quiz, question_index=i)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if response == 1:
+                question.count1 += 1
+            elif response == 2:
+                question.count2 += 1
+            elif response == 3:
+                question.count3 += 1
+            elif response == 4:
+                question.count4 += 1
+            else: 
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+
+            question.save()
+
+            # QP(quiz_personal) 조작
+            result_correct = (question.answer == response)
+            if result_correct:
+                quiz_personal.score += 1
+            quiz_personal.save()
+
+            # QPD(quiz_personal_detail) 생성
+            ChemQuizPersonalDetail.objects.create(
+                QP=quiz_personal,
+                question=question,
+                response=response,
+                result=result_correct,
+            )
+
+            i += 1
+
+        return Response(status=status.HTTP_200_OK)
+
+        
+# 케미 퀴즈 결과 여러 사람 리스트 조회
+class PlayChemQuizResultListView(APIView):
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 결과 여러사람 리스트 조회",
+        operation_description="케미 퀴즈 풀이 결과 리스트를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: ChemQuizPersonalSerializerPlay(many=True),
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+            quiz_personals = ChemQuizPersonal.objects.filter(quiz=quiz)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ChemQuizPersonalSerializerPlay(quiz_personals, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+            
+
+# 케미 퀴즈 문제 수정
+class PlayChemQuizModifyView(APIView):
+    @swagger_auto_schema(
+        operation_id="케미 퀴즈 문제 수정",
+        operation_description="케미 퀴즈의 특정 문제를 수정합니다.",
+        request_body=ChemQuizModifyRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: "OK",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def put(self, request, result_id, question_index):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayChem.objects.get(result_id=result_id)
+            quiz = ChemQuiz.objects.get(result=result)
+            question = ChemQuizQuestion.objects.get(quiz=quiz, question_index=question_index)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        request_serializer = ChemQuizModifyRequestSerializerPlay(data=request.data)
+        if not request_serializer.is_valid():
+            return Response(request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # 해당 문제의 선지와 정답을 수정
+        question.question = request.data.get("question", question.question)
+        question.choice1 = request.data.get("choice1", question.choice1)
+        question.choice2 = request.data.get("choice2", question.choice2)
+        question.choice3 = request.data.get("choice3", question.choice3)
+        question.choice4 = request.data.get("choice4", question.choice4)
+        question.answer = request.data.get("answer", question.answer)
+        question.save()
+
+        # 해당 문제가 속하는 퀴즈의 statistics를 초기화
+        quiz.solved_num = 0
+        quiz.avg_score = 0
+        quiz.save()
+
+        # 해당 문제가 속하는 퀴즈의 모든 문제의 statistics를 초기화
+        questions = ChemQuizQuestion.objects.filter(quiz=quiz)
+        for q in questions:
+            q.correct_num = 0
+            q.count1 = 0
+            q.count2 = 0
+            q.count3 = 0
+            q.count4 = 0
+            q.save() 
+
+        # 이제 그동안 이 문제를 푼 기록은 지워야 함.
+        ChemQuizPersonal.objects.filter(quiz=quiz).delete()
+
+        return Response(status=status.HTTP_200_OK)

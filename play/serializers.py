@@ -9,12 +9,20 @@ from .models import(
     ResultPlayMBTISpec,
     ResultPlayMBTISpecPersonal,
     ResultPlayChemSpec,
-    ResultPlayChemSpecTable
+    ResultPlayChemSpecTable,
+    ChemQuiz,
+    ChemQuizQuestion,
+    ChemQuizPersonal,
+    ChemQuizPersonalDetail,
 ) 
 
 class AnalyseResponseSerializerPlay(serializers.Serializer):
     result_id_ = serializers.IntegerField()
 
+class QuizCreatedSerializerPlay(serializers.Serializer):
+    quiz_id = serializers.IntegerField()
+
+###################################################################
 
 class ChatSerializerPlay(ModelSerializer):
     class Meta:
@@ -78,3 +86,38 @@ class ChemAllSerializerPlay(serializers.Serializer):
     result = ChemResultSerializerPlay()
     spec = ChemSpecSerializerPlay()
     spec_table = ChemSpecTableSerializerPlay(many=True)
+
+###################################################################
+
+class ChemQuizQuestionSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuizQuestion
+        fields = [
+            "quiz_id",
+            "question_index",
+            "question",
+            "choice1",
+            "choice2",
+            "choice3",
+            "choice4",
+        ]
+
+class ChemQuizQuestionDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuizQuestion
+        fields = "__all__"
+
+class ChemQuizInfoSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuiz
+        fields = "__all__"
+
+class ChemQuizPersonalSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuizPersonal
+        fields = "__all__"
+
+class ChemQuizPersonalDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuizPersonalDetail
+        fields = "__all__"
