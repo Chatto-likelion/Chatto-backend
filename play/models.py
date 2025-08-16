@@ -9,7 +9,7 @@ class ChatPlay(models.Model):
     file = models.FileField(upload_to='chat_files_play/')
     people_num = models.IntegerField()
     uploaded_at = models.DateTimeField(default=timezone.now)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
 class ResultPlayChem(models.Model):
     result_id = models.AutoField(primary_key=True)
@@ -22,7 +22,8 @@ class ResultPlayChem(models.Model):
     analysis_date_start = models.TextField(default="")
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
-    chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True, blank=True)
+    chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
 class ResultPlaySome(models.Model):
     result_id = models.AutoField(primary_key=True)
@@ -35,7 +36,8 @@ class ResultPlaySome(models.Model):
     analysis_date_start = models.TextField(default="")
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
-    chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True, blank=True)
+    chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
 class ResultPlayMBTI(models.Model):
     result_id = models.AutoField(primary_key=True)
@@ -46,7 +48,8 @@ class ResultPlayMBTI(models.Model):
     analysis_date_start = models.TextField(default="")
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
-    chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True, blank=True)
+    chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
 class ResultPlayChemSpec(models.Model):
     spec_id = models.AutoField(primary_key=True)
