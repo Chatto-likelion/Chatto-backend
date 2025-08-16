@@ -9,12 +9,28 @@ from .models import(
     ResultPlayMBTISpec,
     ResultPlayMBTISpecPersonal,
     ResultPlayChemSpec,
-    ResultPlayChemSpecTable
+    ResultPlayChemSpecTable,
+    ChemQuiz,
+    ChemQuizQuestion,
+    ChemQuizPersonal,
+    ChemQuizPersonalDetail,
+    SomeQuiz,
+    SomeQuizQuestion,
+    SomeQuizPersonal,
+    SomeQuizPersonalDetail,
+    MBTIQuiz,
+    MBTIQuizQuestion,
+    MBTIQuizPersonal,
+    MBTIQuizPersonalDetail,
 ) 
 
 class AnalyseResponseSerializerPlay(serializers.Serializer):
     result_id_ = serializers.IntegerField()
 
+class QuizCreatedSerializerPlay(serializers.Serializer):
+    quiz_id = serializers.IntegerField()
+
+###################################################################
 
 class ChatSerializerPlay(ModelSerializer):
     class Meta:
@@ -78,3 +94,108 @@ class ChemAllSerializerPlay(serializers.Serializer):
     result = ChemResultSerializerPlay()
     spec = ChemSpecSerializerPlay()
     spec_table = ChemSpecTableSerializerPlay(many=True)
+
+###################################################################
+
+class ChemQuizQuestionSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuizQuestion
+        fields = [
+            "quiz_id",
+            "question_index",
+            "question",
+            "choice1",
+            "choice2",
+            "choice3",
+            "choice4",
+        ]
+
+class ChemQuizQuestionDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuizQuestion
+        fields = "__all__"
+
+class ChemQuizInfoSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuiz
+        fields = "__all__"
+
+class ChemQuizPersonalSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuizPersonal
+        fields = "__all__"
+
+class ChemQuizPersonalDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = ChemQuizPersonalDetail
+        fields = "__all__"
+
+##################################################################
+
+class SomeQuizQuestionSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuizQuestion
+        fields = [
+            "quiz_id",
+            "question_index",
+            "question",
+            "choice1",
+            "choice2",
+            "choice3",
+            "choice4",
+        ]
+
+class SomeQuizQuestionDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuizQuestion
+        fields = "__all__"
+
+class SomeQuizInfoSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuiz
+        fields = "__all__"
+
+class SomeQuizPersonalSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuizPersonal
+        fields = "__all__"
+
+class SomeQuizPersonalDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuizPersonalDetail
+        fields = "__all__"
+
+##################################################################
+
+class MBTIQuizQuestionSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuizQuestion
+        fields = [
+            "quiz_id",
+            "question_index",
+            "question",
+            "choice1",
+            "choice2",
+            "choice3",
+            "choice4",
+        ]
+
+class MBTIQuizQuestionDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuizQuestion
+        fields = "__all__"
+
+class MBTIQuizInfoSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuiz
+        fields = "__all__"
+
+class MBTIQuizPersonalSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuizPersonal
+        fields = "__all__"
+
+class MBTIQuizPersonalDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuizPersonalDetail
+        fields = "__all__"

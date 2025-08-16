@@ -171,3 +171,110 @@ class ResultPlayMBTISpecPersonal(models.Model):
     momentJP_ex = models.TextField(default="")
     momentJP_desc = models.TextField(default="")
 
+class ChemQuiz(models.Model):
+    quiz_id = models.AutoField(primary_key=True)
+    result = models.OneToOneField(ResultPlayChem, on_delete=models.CASCADE)
+    question_num = models.IntegerField(default=0)
+    solved_num = models.IntegerField(default=0)
+    avg_score = models.IntegerField(default=0)
+
+class ChemQuizQuestion(models.Model):
+    question_id = models.AutoField(primary_key=True)
+    quiz = models.ForeignKey(ChemQuiz, on_delete=models.CASCADE)
+    question_index = models.IntegerField(default=0)
+    question = models.TextField(default="")
+    choice1 = models.TextField(default="")
+    choice2 = models.TextField(default="")
+    choice3 = models.TextField(default="")
+    choice4 = models.TextField(default="")
+    answer = models.IntegerField(default=0)
+    correct_num = models.IntegerField(default=0)
+    count1 = models.IntegerField(default=0)
+    count2 = models.IntegerField(default=0)
+    count3 = models.IntegerField(default=0)
+    count4 = models.IntegerField(default=0)
+
+class ChemQuizPersonal(models.Model):
+    QP_id = models.AutoField(primary_key=True)
+    quiz = models.ForeignKey(ChemQuiz, on_delete=models.CASCADE)
+    name = models.TextField(default="")
+    score = models.IntegerField(default=0)
+
+class ChemQuizPersonalDetail(models.Model):
+    QPD_id = models.AutoField(primary_key=True)
+    QP = models.ForeignKey(ChemQuizPersonal, on_delete=models.CASCADE)
+    question = models.ForeignKey(ChemQuizQuestion, on_delete=models.CASCADE)
+    response = models.IntegerField(default=0)
+    result = models.BooleanField(default=False)
+
+class SomeQuiz(models.Model):
+    quiz_id = models.AutoField(primary_key=True)
+    result = models.OneToOneField(ResultPlaySome, on_delete=models.CASCADE)
+    question_num = models.IntegerField(default=0)
+    solved_num = models.IntegerField(default=0)
+    avg_score = models.IntegerField(default=0)
+
+class SomeQuizQuestion(models.Model):
+    question_id = models.AutoField(primary_key=True)
+    quiz = models.ForeignKey(SomeQuiz, on_delete=models.CASCADE)
+    question_index = models.IntegerField(default=0)
+    question = models.TextField(default="")
+    choice1 = models.TextField(default="")
+    choice2 = models.TextField(default="")
+    choice3 = models.TextField(default="")
+    choice4 = models.TextField(default="")
+    answer = models.IntegerField(default=0)
+    correct_num = models.IntegerField(default=0)
+    count1 = models.IntegerField(default=0)
+    count2 = models.IntegerField(default=0)
+    count3 = models.IntegerField(default=0)
+    count4 = models.IntegerField(default=0)
+
+class SomeQuizPersonal(models.Model):
+    QP_id = models.AutoField(primary_key=True)
+    quiz = models.ForeignKey(SomeQuiz, on_delete=models.CASCADE)
+    name = models.TextField(default="")
+    score = models.IntegerField(default=0)
+
+class SomeQuizPersonalDetail(models.Model):
+    QPD_id = models.AutoField(primary_key=True)
+    QP = models.ForeignKey(SomeQuizPersonal, on_delete=models.CASCADE)
+    question = models.ForeignKey(SomeQuizQuestion, on_delete=models.CASCADE)
+    response = models.IntegerField(default=0)
+    result = models.BooleanField(default=False)
+
+class MBTIQuiz(models.Model):
+    quiz_id = models.AutoField(primary_key=True)
+    result = models.OneToOneField(ResultPlayMBTI, on_delete=models.CASCADE)
+    question_num = models.IntegerField(default=0)
+    solved_num = models.IntegerField(default=0)
+    avg_score = models.IntegerField(default=0)
+
+class MBTIQuizQuestion(models.Model):
+    question_id = models.AutoField(primary_key=True)
+    quiz = models.ForeignKey(MBTIQuiz, on_delete=models.CASCADE)
+    question_index = models.IntegerField(default=0)
+    question = models.TextField(default="")
+    choice1 = models.TextField(default="")
+    choice2 = models.TextField(default="")
+    choice3 = models.TextField(default="")
+    choice4 = models.TextField(default="")
+    answer = models.IntegerField(default=0)
+    correct_num = models.IntegerField(default=0)
+    count1 = models.IntegerField(default=0)
+    count2 = models.IntegerField(default=0)
+    count3 = models.IntegerField(default=0)
+    count4 = models.IntegerField(default=0)
+
+class MBTIQuizPersonal(models.Model):
+    QP_id = models.AutoField(primary_key=True)
+    quiz = models.ForeignKey(MBTIQuiz, on_delete=models.CASCADE)
+    name = models.TextField(default="")
+    score = models.IntegerField(default=0)
+
+class MBTIQuizPersonalDetail(models.Model):
+    QPD_id = models.AutoField(primary_key=True)
+    QP = models.ForeignKey(MBTIQuizPersonal, on_delete=models.CASCADE)
+    question = models.ForeignKey(MBTIQuizQuestion, on_delete=models.CASCADE)
+    response = models.IntegerField(default=0)
+    result = models.BooleanField(default=False)
