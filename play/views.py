@@ -1225,7 +1225,7 @@ class PlayChemResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlayChem.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             result.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -1289,7 +1289,7 @@ class PlaySomeResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlaySome.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             result.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -1356,7 +1356,7 @@ class PlayMBTIResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlayMBTI.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             result.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
