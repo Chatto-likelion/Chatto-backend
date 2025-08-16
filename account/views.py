@@ -51,7 +51,7 @@ class SignUpView(APIView):
         responses={201: UserProfileSerializer, 400: "Bad Request"},
     )
     def post(self, request):
-        user_serializer = UserSerializer(data=request.data)
+        user_serializer = SignUpRequestSerializer(data=request.data)
         if user_serializer.is_valid() and request.data.get("password") == request.data.get("password_confirm"):
             user = User.objects.create_user(
                 username = request.data.get("username"),
@@ -63,7 +63,7 @@ class SignUpView(APIView):
 
         UserProfile.objects.create(
             user=user, 
-            point=0, 
+            credit=0, 
             phone=request.data.get("phone")
         )
 
