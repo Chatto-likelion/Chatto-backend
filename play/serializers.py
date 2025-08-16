@@ -14,6 +14,14 @@ from .models import(
     ChemQuizQuestion,
     ChemQuizPersonal,
     ChemQuizPersonalDetail,
+    SomeQuiz,
+    SomeQuizQuestion,
+    SomeQuizPersonal,
+    SomeQuizPersonalDetail,
+    MBTIQuiz,
+    MBTIQuizQuestion,
+    MBTIQuizPersonal,
+    MBTIQuizPersonalDetail,
 ) 
 
 class AnalyseResponseSerializerPlay(serializers.Serializer):
@@ -120,4 +128,74 @@ class ChemQuizPersonalSerializerPlay(ModelSerializer):
 class ChemQuizPersonalDetailSerializerPlay(ModelSerializer):
     class Meta:
         model = ChemQuizPersonalDetail
+        fields = "__all__"
+
+##################################################################
+
+class SomeQuizQuestionSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuizQuestion
+        fields = [
+            "quiz_id",
+            "question_index",
+            "question",
+            "choice1",
+            "choice2",
+            "choice3",
+            "choice4",
+        ]
+
+class SomeQuizQuestionDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuizQuestion
+        fields = "__all__"
+
+class SomeQuizInfoSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuiz
+        fields = "__all__"
+
+class SomeQuizPersonalSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuizPersonal
+        fields = "__all__"
+
+class SomeQuizPersonalDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = SomeQuizPersonalDetail
+        fields = "__all__"
+
+##################################################################
+
+class MBTIQuizQuestionSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuizQuestion
+        fields = [
+            "quiz_id",
+            "question_index",
+            "question",
+            "choice1",
+            "choice2",
+            "choice3",
+            "choice4",
+        ]
+
+class MBTIQuizQuestionDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuizQuestion
+        fields = "__all__"
+
+class MBTIQuizInfoSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuiz
+        fields = "__all__"
+
+class MBTIQuizPersonalSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuizPersonal
+        fields = "__all__"
+
+class MBTIQuizPersonalDetailSerializerPlay(ModelSerializer):
+    class Meta:
+        model = MBTIQuizPersonalDetail
         fields = "__all__"

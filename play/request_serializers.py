@@ -19,14 +19,9 @@ class ChatMBTIAnalysisRequestSerializerPlay(serializers.Serializer):
     analysis_start = serializers.CharField()
     analysis_end = serializers.CharField()
 
-class ChemQuizSolveDetailRequestSerializerPlay(serializers.Serializer):
-    name = serializers.CharField()
-    answer = serializers.IntegerField()
+#######################################################################
 
 class ChemQuizStartRequestSerializerPlay(serializers.Serializer):
-    name = serializers.CharField()
-    
-class ChemQuizSubmissionRequestSerializerPlay(serializers.Serializer):
     name = serializers.CharField()
 
 class ChemQuizPersonalViewRequestSerializerPlay(serializers.Serializer):
@@ -46,5 +41,54 @@ class ChemQuizModifyRequestSerializerPlay(serializers.Serializer):
 class ChemQuizSubmitRequestSerializerPlay(serializers.Serializer):
     answer = serializers.IntegerField()
 
+#######################################################################
+
+class SomeQuizStartRequestSerializerPlay(serializers.Serializer):
+    name = serializers.CharField()
+
+class SomeQuizPersonalViewRequestSerializerPlay(serializers.Serializer):
+    name = serializers.CharField()
+
+class SomeQuizResultViewRequestSerializerPlay(serializers.Serializer):
+    name = serializers.CharField()
+
+class SomeQuizModifyRequestSerializerPlay(serializers.Serializer):
+    question = serializers.CharField()
+    choice1 = serializers.CharField()
+    choice2 = serializers.CharField()
+    choice3 = serializers.CharField()
+    choice4 = serializers.CharField()
+    answer = serializers.IntegerField()
+
+class SomeQuizSubmitRequestSerializerPlay(serializers.Serializer):
+    answer = serializers.IntegerField()
+
+#######################################################################
+
+class MBTIQuizStartRequestSerializerPlay(serializers.Serializer):
+    name = serializers.CharField()
+
+class MBTIQuizPersonalViewRequestSerializerPlay(serializers.Serializer):
+    name = serializers.CharField()
+
+class MBTIQuizResultViewRequestSerializerPlay(serializers.Serializer):
+    name = serializers.CharField()
+
+class MBTIQuizModifyRequestSerializerPlay(serializers.Serializer):
+    question = serializers.CharField()
+    choice1 = serializers.CharField()
+    choice2 = serializers.CharField()
+    choice3 = serializers.CharField()
+    choice4 = serializers.CharField()
+    answer = serializers.IntegerField()
+
+class MBTIQuizSubmitRequestSerializerPlay(serializers.Serializer):
+    answer = serializers.IntegerField()
+
+#######################################################################
+
 class ChatTitleModifyRequestSerializerPlay(serializers.Serializer):
     title = serializers.CharField()
+
+#######################################################################
+

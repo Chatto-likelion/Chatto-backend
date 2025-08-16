@@ -13,15 +13,22 @@ from .request_serializers import (
     ChatChemAnalysisRequestSerializerPlay,
     ChatSomeAnalysisRequestSerializerPlay,
     ChatMBTIAnalysisRequestSerializerPlay,
-    ChemQuizSubmissionRequestSerializerPlay,
-    ChemQuizSolveDetailRequestSerializerPlay,
-    ChemQuizSolveDetailRequestSerializerPlay,
     ChemQuizStartRequestSerializerPlay,
     ChemQuizResultViewRequestSerializerPlay,
     ChemQuizPersonalViewRequestSerializerPlay,
     ChemQuizModifyRequestSerializerPlay,
     ChemQuizSubmitRequestSerializerPlay,
     ChatTitleModifyRequestSerializerPlay,
+    SomeQuizStartRequestSerializerPlay,
+    SomeQuizPersonalViewRequestSerializerPlay,
+    SomeQuizResultViewRequestSerializerPlay,
+    SomeQuizModifyRequestSerializerPlay,
+    SomeQuizSubmitRequestSerializerPlay,
+    MBTIQuizStartRequestSerializerPlay,
+    MBTIQuizPersonalViewRequestSerializerPlay,
+    MBTIQuizResultViewRequestSerializerPlay,
+    MBTIQuizModifyRequestSerializerPlay,
+    MBTIQuizSubmitRequestSerializerPlay,
 )
 from .serializers import (
     AnalyseResponseSerializerPlay,
@@ -38,6 +45,16 @@ from .serializers import (
     ChemQuizPersonalSerializerPlay,
     ChemQuizQuestionDetailSerializerPlay,
     ChemQuizPersonalDetailSerializerPlay,
+    SomeQuizQuestionDetailSerializerPlay,
+    SomeQuizQuestionSerializerPlay,
+    SomeQuizInfoSerializerPlay,
+    SomeQuizPersonalSerializerPlay,
+    SomeQuizPersonalDetailSerializerPlay,
+    MBTIQuizQuestionSerializerPlay,
+    MBTIQuizQuestionDetailSerializerPlay,
+    MBTIQuizInfoSerializerPlay,
+    MBTIQuizPersonalSerializerPlay,
+    MBTIQuizPersonalDetailSerializerPlay,
 )
 
 from .models import(
@@ -54,6 +71,14 @@ from .models import(
     ChemQuizQuestion,
     ChemQuizPersonal,
     ChemQuizPersonalDetail,
+    SomeQuiz,
+    SomeQuizQuestion,
+    SomeQuizPersonal,
+    SomeQuizPersonalDetail,
+    MBTIQuiz,
+    MBTIQuizQuestion,
+    MBTIQuizPersonal,
+    MBTIQuizPersonalDetail,
 )   
 
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -1382,3 +1407,1075 @@ class PlayChemQuizModifyView(APIView):
         ChemQuizPersonal.objects.filter(quiz=quiz).delete()
 
         return Response(status=status.HTTP_200_OK)
+    
+
+
+###################################################################
+
+
+# 썸 퀴즈 생성, 썸 퀴즈 조회, 썸 퀴즈 삭제
+class PlaySomeQuizView(APIView):
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 생성",
+        operation_description="특정 썸 분석 결과에 대한 퀴즈를 생성합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            201: QuizCreatedSerializerPlay(many=True),
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found"
+        },
+    )
+    def post(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if result.chat.user != author:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        # spec과 가져온 이유: 이거 보고 퀴즈 생성! (물론 chat의 내용도 보고)
+        spec = ResultPlaySomeSpec.objects.get(result=result)
+
+        if SomeQuiz.objects.filter(result=result).exists():
+            return Response({"detail": "이미 해당 분석 결과에 대한 퀴즈가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        quiz = SomeQuiz.objects.create(
+            result=result,
+            question_num=3,
+            solved_num=0,
+            avg_score=0,
+        )
+
+        for i in range(quiz.question_num):
+            SomeQuizQuestion.objects.create(
+                quiz=quiz,
+                question_index=i,
+                question=f"{i}번째 질문 내용",
+                choice1="선택지 1",
+                choice2="선택지 2",
+                choice3="선택지 3",
+                choice4="선택지 4",
+                answer=1,
+                correct_num=0,
+                count1=0,
+                count2=0,
+                count3=0,
+                count4=0,
+            )
+        
+        return Response(
+            {
+                "quiz_id": quiz.quiz_id,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 조회",
+        operation_description="특정 썸 분석 결과에 대한 퀴즈를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: SomeQuizInfoSerializerPlay,
+            401: "Unauthorized",
+            404: "Not Found",
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = SomeQuizInfoSerializerPlay(quiz)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 삭제",
+        operation_description="특정 썸 분석 결과에 대한 퀴즈를 삭제합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            204: "No Content",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found"
+        },
+    )
+    def delete(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if result.chat.user != author:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        quiz.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# 썸 퀴즈 문제 리스트 상세 조회
+class PlaySomeQuizQuestionListDetailView(APIView):
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 문제 리스트 상세 조회",
+        operation_description="특정 썸 분석 결과에 대한 퀴즈의 문제 리스트를 상세 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: SomeQuizQuestionDetailSerializerPlay(many=True),
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+            questions = SomeQuizQuestion.objects.filter(quiz=quiz)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = SomeQuizQuestionDetailSerializerPlay(questions, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# 썸 퀴즈 문제 리스트 조회
+class PlaySomeQuizQuestionListView(APIView):
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 문제 리스트 조회",
+        operation_description="특정 썸 분석 결과에 대한 퀴즈의 문제 리스트를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: SomeQuizQuestionSerializerPlay(many=True),
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+            questions = SomeQuizQuestion.objects.filter(quiz=quiz).order_by('question_index')
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = SomeQuizQuestionSerializerPlay(questions, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+# 썸 퀴즈 풀이 시작
+class PlaySomeQuizStartView(APIView):
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 풀이 시작",
+        operation_description="썸 퀴즈 풀이를 시작합니다.",
+        request_body=SomeQuizStartRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            201: "Created",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def post(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        serializer = SomeQuizStartRequestSerializerPlay(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        name = serializer.validated_data["name"]
+
+        if SomeQuizPersonal.objects.filter(quiz__result__result_id=result_id, name=name).exists():
+            return Response({"detail": "이미 해당 이름의 퀴즈 풀이가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        SomeQuizPersonal.objects.create(
+            quiz=quiz,
+            name=name,
+            score=0,  # 초기 점수는 0
+        )
+
+        return Response(status=status.HTTP_201_CREATED)
+
+
+# 썸 퀴즈 결과 (문제별 리스트) 한 사람 조회, 썸 퀴즈 결과 한 사람 삭제
+class PlaySomeQuizPersonalView(APIView):
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 결과 (문제별 리스트) 한 사람 조회",
+        operation_description="썸 퀴즈 결과를 한 사람 기준으로 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: SomeQuizPersonalSerializerPlay,
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id, name):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+            quiz_personal = SomeQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal_details = SomeQuizPersonalDetail.objects.filter(QP=quiz_personal)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = SomeQuizPersonalDetailSerializerPlay(quiz_personal_details, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 결과 한 사람 삭제",
+        operation_description="썸 퀴즈 결과를 한 사람 기준으로 삭제합니다.",
+        request_body=SomeQuizPersonalViewRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            204: "No Content",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def delete(self, request, result_id, name):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+            quiz_personal = SomeQuizPersonal.objects.get(quiz=quiz, name=name)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        quiz_personal.delete()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# 썸 퀴즈 풀이 제출 (여러 문제 답변을 한 번에 제출)
+class PlaySomeQuizSubmitView(APIView):
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 제출",
+        operation_description="썸 퀴즈 풀이를 제출합니다. (여러 문제 답변을 한 번에 제출)",
+        request_body=SomeQuizSubmitRequestSerializerPlay(many=True),
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: "OK",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def post(self, request, result_id, name):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        request_serializer = SomeQuizSubmitRequestSerializerPlay(data=request.data, many=True)
+
+        if not request_serializer.is_valid():
+            return Response(request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+            quiz_personal = SomeQuizPersonal.objects.get(quiz=quiz, name=name)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        answers = request_serializer.validated_data
+
+        if len(answers) != quiz.question_num:
+            return Response({"detail": "제출한 답변의 수가 문제 수와 일치하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        i = 0
+        for answer in answers:
+            response = int(answer['answer'])
+
+            try:
+                question = SomeQuizQuestion.objects.get(quiz=quiz, question_index=i)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if response == 1:
+                question.count1 += 1
+            elif response == 2:
+                question.count2 += 1
+            elif response == 3:
+                question.count3 += 1
+            elif response == 4:
+                question.count4 += 1
+            else: 
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+
+            question.save()
+
+            # QP(quiz_personal) 조작
+            result_correct = (question.answer == response)
+            if result_correct:
+                quiz_personal.score += 1
+            quiz_personal.save()
+
+            # QPD(quiz_personal_detail) 생성
+            SomeQuizPersonalDetail.objects.create(
+                QP=quiz_personal,
+                question=question,
+                response=response,
+                result=result_correct,
+            )
+
+            i += 1
+
+        return Response(status=status.HTTP_200_OK)
+
+        
+# 썸 퀴즈 결과 여러 사람 리스트 조회
+class PlaySomeQuizResultListView(APIView):
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 결과 여러사람 리스트 조회",
+        operation_description="썸 퀴즈 풀이 결과 리스트를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: SomeQuizPersonalSerializerPlay(many=True),
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+            quiz_personals = SomeQuizPersonal.objects.filter(quiz=quiz)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = SomeQuizPersonalSerializerPlay(quiz_personals, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+            
+
+# 썸 퀴즈 문제 수정
+class PlaySomeQuizModifyView(APIView):
+    @swagger_auto_schema(
+        operation_id="썸 퀴즈 문제 수정",
+        operation_description="썸 퀴즈의 특정 문제를 수정합니다.",
+        request_body=SomeQuizModifyRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: "OK",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def put(self, request, result_id, question_index):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlaySome.objects.get(result_id=result_id)
+            quiz = SomeQuiz.objects.get(result=result)
+            question = SomeQuizQuestion.objects.get(quiz=quiz, question_index=question_index)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        request_serializer = SomeQuizModifyRequestSerializerPlay(data=request.data)
+        if not request_serializer.is_valid():
+            return Response(request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # 해당 문제의 선지와 정답을 수정
+        question.question = request.data.get("question", question.question)
+        question.choice1 = request.data.get("choice1", question.choice1)
+        question.choice2 = request.data.get("choice2", question.choice2)
+        question.choice3 = request.data.get("choice3", question.choice3)
+        question.choice4 = request.data.get("choice4", question.choice4)
+        question.answer = request.data.get("answer", question.answer)
+        question.save()
+
+        # 해당 문제가 속하는 퀴즈의 statistics를 초기화
+        quiz.solved_num = 0
+        quiz.avg_score = 0
+        quiz.save()
+
+        # 해당 문제가 속하는 퀴즈의 모든 문제의 statistics를 초기화
+        questions = SomeQuizQuestion.objects.filter(quiz=quiz)
+        for q in questions:
+            q.correct_num = 0
+            q.count1 = 0
+            q.count2 = 0
+            q.count3 = 0
+            q.count4 = 0
+            q.save() 
+
+        # 이제 그동안 이 문제를 푼 기록은 지워야 함.
+        SomeQuizPersonal.objects.filter(quiz=quiz).delete()
+
+        return Response(status=status.HTTP_200_OK)
+    
+
+
+###################################################################
+
+
+# MBTI 퀴즈 생성, MBTI 퀴즈 조회, MBTI 퀴즈 삭제
+class PlayMBTIQuizView(APIView):
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 생성",
+        operation_description="특정 MBTi 분석 결과에 대한 퀴즈를 생성합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            201: QuizCreatedSerializerPlay(many=True),
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found"
+        },
+    )
+    def post(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if result.chat.user != author:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        # spec과 spec_personals 가져온 이유: 이거 보고 퀴즈 생성! (물론 chat의 내용도 보고)
+        spec = ResultPlayMBTISpec.objects.get(result=result)
+        spec_personals = ResultPlayMBTISpecPersonal.objects.filter(spec=spec)
+
+        if MBTIQuiz.objects.filter(result=result).exists():
+            return Response({"detail": "이미 해당 분석 결과에 대한 퀴즈가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        quiz = MBTIQuiz.objects.create(
+            result=result,
+            question_num=3,
+            solved_num=0,
+            avg_score=0,
+        )
+
+        for i in range(quiz.question_num):
+            MBTIQuizQuestion.objects.create(
+                quiz=quiz,
+                question_index=i,
+                question=f"{i}번째 질문 내용",
+                choice1="MBTI 1",
+                choice2="MBTI 2",
+                choice3="MBTI 3",
+                choice4="MBTI 4",
+                answer=1,
+                correct_num=0,
+                count1=0,
+                count2=0,
+                count3=0,
+                count4=0,
+            )
+        
+        return Response(
+            {
+                "quiz_id": quiz.quiz_id,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 조회",
+        operation_description="특정 MBTI 분석 결과에 대한 퀴즈를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: MBTIQuizInfoSerializerPlay,
+            401: "Unauthorized",
+            404: "Not Found",
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = MBTIQuizInfoSerializerPlay(quiz)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 삭제",
+        operation_description="특정 MBTI 분석 결과에 대한 퀴즈를 삭제합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            204: "No Content",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found"
+        },
+    )
+    def delete(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if result.chat.user != author:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        quiz.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# MBTI 퀴즈 문제 리스트 상세 조회
+class PlayMBTIQuizQuestionListDetailView(APIView):
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 문제 리스트 상세 조회",
+        operation_description="특정 MBTI 분석 결과에 대한 퀴즈의 문제 리스트를 상세 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: MBTIQuizQuestionDetailSerializerPlay(many=True),
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+            questions = MBTIQuizQuestion.objects.filter(quiz=quiz)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = MBTIQuizQuestionDetailSerializerPlay(questions, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# MBTI 퀴즈 문제 리스트 조회
+class PlayMBTIQuizQuestionListView(APIView):
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 문제 리스트 조회",
+        operation_description="특정 MBTI 분석 결과에 대한 퀴즈의 문제 리스트를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: MBTIQuizQuestionSerializerPlay(many=True),
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+            questions = MBTIQuizQuestion.objects.filter(quiz=quiz).order_by('question_index')
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = MBTIQuizQuestionSerializerPlay(questions, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+# MBTI 퀴즈 풀이 시작
+class PlayMBTIQuizStartView(APIView):
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 풀이 시작",
+        operation_description="MBTI 퀴즈 풀이를 시작합니다.",
+        request_body=MBTIQuizStartRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            201: "Created",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def post(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        serializer = MBTIQuizStartRequestSerializerPlay(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        name = serializer.validated_data["name"]
+
+        if MBTIQuizPersonal.objects.filter(quiz__result__result_id=result_id, name=name).exists():
+            return Response({"detail": "이미 해당 이름의 퀴즈 풀이가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        MBTIQuizPersonal.objects.create(
+            quiz=quiz,
+            name=name,
+            score=0,  # 초기 점수는 0
+        )
+
+        return Response(status=status.HTTP_201_CREATED)
+
+
+# MBTI 퀴즈 결과 (문제별 리스트) 한 사람 조회, MBTI 퀴즈 결과 한 사람 삭제
+class PlayMBTIQuizPersonalView(APIView):
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 결과 (문제별 리스트) 한 사람 조회",
+        operation_description="MBTI 퀴즈 결과를 한 사람 기준으로 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: MBTIQuizPersonalSerializerPlay,
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id, name):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+            quiz_personal = MBTIQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal_details = MBTIQuizPersonalDetail.objects.filter(QP=quiz_personal)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # 누구나 퀴즈를 조회할 수는 있다: 403 Forbidden 없음
+
+        serializer = MBTIQuizPersonalDetailSerializerPlay(quiz_personal_details, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 결과 한 사람 삭제",
+        operation_description="MBTI 퀴즈 결과를 한 사람 기준으로 삭제합니다.",
+        request_body=MBTIQuizPersonalViewRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            204: "No Content",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def delete(self, request, result_id, name):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+            quiz_personal = MBTIQuizPersonal.objects.get(quiz=quiz, name=name)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        quiz_personal.delete()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# MBTI 퀴즈 풀이 제출 (여러 문제 답변을 한 번에 제출)
+class PlayMBTIQuizSubmitView(APIView):
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 제출",
+        operation_description="MBTI 퀴즈 풀이를 제출합니다. (여러 문제 답변을 한 번에 제출)",
+        request_body=MBTIQuizSubmitRequestSerializerPlay(many=True),
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: "OK",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def post(self, request, result_id, name):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        request_serializer = MBTIQuizSubmitRequestSerializerPlay(data=request.data, many=True)
+
+        if not request_serializer.is_valid():
+            return Response(request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+            quiz_personal = MBTIQuizPersonal.objects.get(quiz=quiz, name=name)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        answers = request_serializer.validated_data
+
+        if len(answers) != quiz.question_num:
+            return Response({"detail": "제출한 답변의 수가 문제 수와 일치하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        i = 0
+        for answer in answers:
+            response = int(answer['answer'])
+
+            try:
+                question = MBTIQuizQuestion.objects.get(quiz=quiz, question_index=i)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if response == 1:
+                question.count1 += 1
+            elif response == 2:
+                question.count2 += 1
+            elif response == 3:
+                question.count3 += 1
+            elif response == 4:
+                question.count4 += 1
+            else: 
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+
+            question.save()
+
+            # QP(quiz_personal) 조작
+            result_correct = (question.answer == response)
+            if result_correct:
+                quiz_personal.score += 1
+            quiz_personal.save()
+
+            # QPD(quiz_personal_detail) 생성
+            MBTIQuizPersonalDetail.objects.create(
+                QP=quiz_personal,
+                question=question,
+                response=response,
+                result=result_correct,
+            )
+
+            i += 1
+
+        return Response(status=status.HTTP_200_OK)
+
+        
+# MBTI 퀴즈 결과 여러 사람 리스트 조회
+class PlayMBTIQuizResultListView(APIView):
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 결과 여러사람 리스트 조회",
+        operation_description="MBTI 퀴즈 풀이 결과 리스트를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: MBTIQuizPersonalSerializerPlay(many=True),
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def get(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+            quiz_personals = MBTIQuizPersonal.objects.filter(quiz=quiz)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = MBTIQuizPersonalSerializerPlay(quiz_personals, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+            
+
+# MBTI 퀴즈 문제 수정
+class PlayMBTIQuizModifyView(APIView):
+    @swagger_auto_schema(
+        operation_id="MBTI 퀴즈 문제 수정",
+        operation_description="MBTI 퀴즈의 특정 문제를 수정합니다.",
+        request_body=MBTIQuizModifyRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: "OK",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found"
+        },
+    )
+    def put(self, request, result_id, question_index):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            result = ResultPlayMBTI.objects.get(result_id=result_id)
+            quiz = MBTIQuiz.objects.get(result=result)
+            question = MBTIQuizQuestion.objects.get(quiz=quiz, question_index=question_index)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        request_serializer = MBTIQuizModifyRequestSerializerPlay(data=request.data)
+        if not request_serializer.is_valid():
+            return Response(request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # 해당 문제의 선지와 정답을 수정
+        question.question = request.data.get("question", question.question)
+        question.choice1 = request.data.get("choice1", question.choice1)
+        question.choice2 = request.data.get("choice2", question.choice2)
+        question.choice3 = request.data.get("choice3", question.choice3)
+        question.choice4 = request.data.get("choice4", question.choice4)
+        question.answer = request.data.get("answer", question.answer)
+        question.save()
+
+        # 해당 문제가 속하는 퀴즈의 statistics를 초기화
+        quiz.solved_num = 0
+        quiz.avg_score = 0
+        quiz.save()
+
+        # 해당 문제가 속하는 퀴즈의 모든 문제의 statistics를 초기화
+        questions = MBTIQuizQuestion.objects.filter(quiz=quiz)
+        for q in questions:
+            q.correct_num = 0
+            q.count1 = 0
+            q.count2 = 0
+            q.count3 = 0
+            q.count4 = 0
+            q.save() 
+
+        # 이제 그동안 이 문제를 푼 기록은 지워야 함.
+        MBTIQuizPersonal.objects.filter(quiz=quiz).delete()
+
+        return Response(status=status.HTTP_200_OK)
+    
