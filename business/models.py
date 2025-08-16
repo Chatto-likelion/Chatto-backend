@@ -3,24 +3,57 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 # Create your models here.
-class Chat(models.Model):
-    chat_id_bus_contrib = models.AutoField(primary_key=True)
+class ChatBus(models.Model):
+    chat_id = models.AutoField(primary_key=True)
     title = models.TextField()
-    content = models.FileField(upload_to='chat_files/')
+    file = models.FileField(upload_to='chat_files_business/')
     people_num = models.IntegerField()
-    updated_at = models.DateTimeField(auto_now=True)
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"chat_id_bus_contrib={self.chat_id_bus_contrib}, title={self.title}, user_id={self.user_id}"
+    uploaded_at = models.DateTimeField(default=timezone.now)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     
 class ResultBusContrib(models.Model):
-    result_id_bus_contrib = models.AutoField(primary_key=True)
-    content = models.TextField()
+    result_id = models.AutoField(primary_key=True)
+    type = models.IntegerField(default=0)       
+    title = models.TextField(default = "")
+    people_num = models.IntegerField(default=0)
     is_saved = models.BooleanField(default=False)
-    analysis_date = models.DateField(default=timezone.now)
-    analysis_type = models.TextField()
-    chat_id_bus_contrib = models.ForeignKey(Chat, on_delete=models.CASCADE)
+    project_type = models.TextField(default="")
+    team_type = models.TextField(default="")
+    analysis_date_start = models.TextField(default="")
+    analysis_date_end = models.TextField(default="")
+    created_at = models.DateTimeField(default=timezone.now)
+    chat = models.ForeignKey(ChatBus, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
-    def __str__(self):
-        return f"result_id_bus_contrib={self.result_id_bus_contrib}, content={self.content[:50]}, chat_id_bus_contrib={self.chat_id_bus_contrib}"
+class ResultBusContribSpec(models.Model):
+    spec_id = models.AutoField(primary_key=True)
+    result = models.ForeignKey(ResultBusContrib, on_delete=models.CASCADE)
+    total_talks = models.IntegerField(default=0)
+    leader = models.TextField(default="")
+    avg_resp = models.IntegerField(default=0)
+    insights = models.TextField(default="")
+    recommendation = models.TextField(default="")
+    analysis_size = models.IntegerField(default=0)
+
+class ResultBusContribSpecPersonal(models.Model):
+    specpersonal_id = models.AutoField(primary_key=True)
+    spec = models.ForeignKey(ResultBusContribSpec, on_delete=models.CASCADE)
+    name = models.TextField(default="")
+    rank = models.IntegerField(default=0)
+    participation = models.IntegerField(default=0)
+    infoshare = models.IntegerField(default=0)
+    probsolve = models.IntegerField(default=0)
+    resptime = models.IntegerField(default=0)
+    type = models.TextField(default="")
+
+class ResultBusContribSpecPeriod(models.Model):
+    specperiod_id = models.AutoField(primary_key=True)
+    spec = models.ForeignKey(ResultBusContribSpec, on_delete=models.CASCADE)
+    name = models.TextField(default="")
+    analysis = models.TextField(default="")
+    pediod_1 = models.IntegerField(default=0)
+    period_2 = models.IntegerField(default=0)
+    period_3 = models.IntegerField(default=0)
+    period_4 = models.IntegerField(default=0)
+    period_5 = models.IntegerField(default=0)
+    period_6 = models.IntegerField(default=0)

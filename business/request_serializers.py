@@ -1,12 +1,10 @@
 from rest_framework import serializers
 
-class ChatUploadRequestSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField()
+class ChatUploadRequestSerializerBus(serializers.Serializer):
     file = serializers.FileField()
 
-class ChatAnalysisRequestSerializer(serializers.Serializer):
-    people_num = serializers.IntegerField()
-    rel = serializers.CharField(max_length=255) 
-    situation = serializers.CharField(max_length=255)
-    analysis_start = serializers.DateTimeField()
-    analysis_end = serializers.DateTimeField()
+class ChatAnalysisRequestSerializerBus(serializers.Serializer):
+    project_type = serializers.CharField() 
+    team_type = serializers.CharField()
+    analysis_start = serializers.CharField()
+    analysis_end = serializers.CharField()
