@@ -23,6 +23,7 @@ class ResultBusContrib(models.Model):
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
     chat = models.ForeignKey(ChatBus, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
 class ResultBusContribSpec(models.Model):
     spec_id = models.AutoField(primary_key=True)

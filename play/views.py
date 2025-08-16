@@ -253,12 +253,28 @@ class PlayChatDetailView(APIView):
         
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
-            if chat.user != author:
-                return Response(status=status.HTTP_403_FORBIDDEN)
-            chat.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
         except ChatPlay.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if chat.user != author:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        chem_results = ResultPlayChem.objects.filter(chat=chat)
+        some_results = ResultPlaySome.objects.filter(chat=chat)
+        mbti_results = ResultPlayMBTI.objects.filter(chat=chat)
+
+        for result in chem_results:
+            result.chat = None  
+            result.save()
+        for result in some_results:
+            result.chat = None  
+            result.save()
+        for result in mbti_results:
+            result.chat = None  
+            result.save()
+
+        chat.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @swagger_auto_schema(
         operation_id="특정 채팅 제목 수정",
@@ -300,6 +316,8 @@ class PlayChatDetailView(APIView):
         chat.save()
 
         return Response(status=status.HTTP_200_OK)
+
+
 
 ##################################################################
 
@@ -359,6 +377,7 @@ class PlayChatChemAnalyzeView(APIView):
             analysis_date_start=analysis_start,
             analysis_date_end=analysis_end,
             chat=chat,
+            user=author, 
         )
 
         if result.people_num >= 5:
@@ -990,6 +1009,7 @@ class PlayChatSomeAnalyzeView(APIView):
             analysis_date_start=analysis_start,
             analysis_date_end=analysis_end,
             chat=chat,
+            user=author,
         )
 
         # Gemini API 클라이언트를 사용하여 대화 내용을 분석
@@ -1100,6 +1120,7 @@ class PlayChatMBTIAnalyzeView(APIView):
             analysis_date_start=analysis_start,
             analysis_date_end=analysis_end,
             chat=chat,
+            user=author,
         )
 
         spec = ResultPlayMBTISpec.objects.create(
@@ -1169,7 +1190,7 @@ class PlayChemResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlayChem.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             
             spec = ResultPlayChemSpec.objects.get(result=result)
@@ -1233,7 +1254,7 @@ class PlaySomeResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlaySome.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             
             spec = ResultPlaySomeSpec.objects.get(result=result)
@@ -1298,7 +1319,7 @@ class PlayMBTIResultDetailView(APIView):
         try:
             result = ResultPlayMBTI.objects.get(result_id=result_id)
 
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             
             spec = ResultPlayMBTISpec.objects.get(result=result)
@@ -1369,9 +1390,9 @@ class PlayResultAllView(APIView):
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        chem_results = ResultPlayChem.objects.filter(chat__user=author)
-        some_results = ResultPlaySome.objects.filter(chat__user=author)
-        mbti_results = ResultPlayMBTI.objects.filter(chat__user=author)
+        chem_results = ResultPlayChem.objects.filter(user=author)
+        some_results = ResultPlaySome.objects.filter(user=author)
+        mbti_results = ResultPlayMBTI.objects.filter(user=author)
 
         # 모델별 직렬화 
         chem_serialized = ChemResultSerializerPlay(chem_results, many=True).data
