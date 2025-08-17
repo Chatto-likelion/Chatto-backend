@@ -102,6 +102,8 @@ class ResultPlayChemSpecTable(models.Model):
 class ResultPlaySomeSpec(models.Model):
     spec_id = models.AutoField(primary_key=True)
     result = models.ForeignKey(ResultPlaySome, on_delete=models.CASCADE)
+    name_A = models.TextField(default="")
+    name_B = models.TextField(default="")
     score_main = models.IntegerField(default=0)
     comment_main = models.TextField(default="")
     score_A = models.IntegerField(default=0)

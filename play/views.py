@@ -92,14 +92,9 @@ from django.conf import settings
 from .utils import (
     extract_chat_title,
     count_chat_participants_with_gemini,
-    some_main_with_gemini,
-    some_favorability_with_gemini,
-    some_tone_with_gemini,
-    some_reply_with_gemini,
-    some_rec_with_gemini,
-    some_atti_with_gemini,
-    some_comment_with_gemini,
+    some_analysis_with_gemini,
     mbti_analysis_with_gemini,
+    chem_analysis_with_gemini,
 )
     
 
@@ -294,8 +289,8 @@ class PlayChatChemAnalyzeView(APIView):
 
         relationship = serializer.validated_data["relationship"]
         situation = serializer.validated_data["situation"]
-        analysis_start = serializer.validated_data["analysis_start"]
-        analysis_end = serializer.validated_data["analysis_end"]
+        analysis_start = "처음부터" if serializer.validated_data["analysis_start"] == "string" else serializer.validated_data["analysis_start"]
+        analysis_end = "끝까지" if serializer.validated_data["analysis_end"] == "string" else serializer.validated_data["analysis_end"]
 
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
@@ -304,6 +299,12 @@ class PlayChatChemAnalyzeView(APIView):
         except ChatPlay.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        analysis_option = {
+            "start": analysis_start,
+            "end": analysis_end,
+            "relationship": relationship,
+            "situation": situation,
+        }
 
         result = ResultPlayChem.objects.create(
             type=1,
@@ -317,53 +318,89 @@ class PlayChatChemAnalyzeView(APIView):
             chat=chat,
         )
 
-        if result.people_num >= 5:
-            size = 5
-        else:
-            size = result.people_num
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        chem_results = chem_analysis_with_gemini(chat, client, analysis_option)
+
+        if "error_message" in chem_results:
+            result.delete()
+            return Response(
+                {"detail": chem_results["error_message"]},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+        size = 5 if result.people_num >= 5 else result.people_num
 
         spec = ResultPlayChemSpec.objects.create(
             result=result,
-            score_main=0,
-            summary_main="",
+            score_main=chem_results.get("score_main", 0),
+            summary_main=chem_results.get("summary_main", ""),
             tablesize=size,
-            top1_A="",
-            top1_B="",
-            top1_score=0,
-            top1_comment="",
-            top2_A="",
-            top2_B="",
-            top2_score=0,
-            top2_comment="",
-            top3_A="",
-            top3_B="",
-            top3_score=0,
-            top3_comment="",
-            tone_pos=0,
-            tone_humer=0,
-            tone_else=0,
-            tone_ex="",
-            resp_time=0,
-            resp_ratio=0,
-            ignore=0,
-            resp_analysis="",
-            topic1="",
-            topic1_ratio=0,
-            topic2="",
-            topic2_ratio=0,
-            topic3="",
-            topic3_ratio=0,
-            topic4="",
-            topic4_ratio=0,
-            topicelse_ratio=0,
-            chatto_analysis="",
-            chatto_levelup="",
-            chatto_levelup_tips="",
-            name_0="",
-            name_1="",
-            name_2="",
-            name_3="",
-            name_4="",
+            top1_A=chem_results.get("top1_A", ""),
+            top1_B=chem_results.get("top1_B", ""),
+            top1_score=chem_results.get("top1_score", 0),
+            top1_comment=chem_results.get("top1_comment", ""),
+            top2_A=chem_results.get("top2_A", ""),
+            top2_B=chem_results.get("top2_B", ""),
+            top2_score=chem_results.get("top2_score", 0),
+            top2_comment=chem_results.get("top2_comment", ""),
+            top3_A=chem_results.get("top3_A", ""),
+            top3_B=chem_results.get("top3_B", ""),
+            top3_score=chem_results.get("top3_score", 0),
+            top3_comment=chem_results.get("top3_comment", ""),
+            tone_pos=chem_results.get("tone_pos", 0),
+            tone_humer=chem_results.get("tone_humer", 0),
+            tone_else=chem_results.get("tone_else", 0),
+            tone_ex=chem_results.get("tone_ex", ""),
+            resp_time=chem_results.get("resp_time", 0),
+            resp_ratio=chem_results.get("resp_ratio", 0),
+            ignore=chem_results.get("ignore", 0),
+            resp_analysis=chem_results.get("resp_analysis", ""),
+            topic1=chem_results.get("topic1", ""),
+            topic1_ratio=chem_results.get("topic1_ratio", 0),
+            topic2=chem_results.get("topic2", ""),
+            topic2_ratio=chem_results.get("topic2_ratio", 0),
+            topic3=chem_results.get("topic3", ""),
+            topic3_ratio=chem_results.get("topic3_ratio", 0),
+            topic4=chem_results.get("topic4", ""),
+            topic4_ratio=chem_results.get("topic4_ratio", 0),
+            topicelse_ratio=chem_results.get("topicelse_ratio", 0),
+            chatto_analysis=chem_results.get("chatto_analysis", ""),
+            chatto_levelup=chem_results.get("chatto_levelup", ""),
+            chatto_levelup_tips=chem_results.get("chatto_levelup_tips", ""),
+            name_0=chem_results.get("name_0", ""),
+            name_1=chem_results.get("name_1", ""),
+            name_2=chem_results.get("name_2", ""),
+            name_3=chem_results.get("name_3", ""),
+            name_4=chem_results.get("name_4", ""),
+        )
+
+        names = [name for name in [
+            chem_results.get("name_0"), chem_results.get("name_1"),
+            chem_results.get("name_2"), chem_results.get("name_3"),
+            chem_results.get("name_4")
+        ] if name] # 이름이 있는 경우에만 리스트에 추가
+        
+        interaction_matrix = chem_results.get("interaction_matrix", {})
+
+        for i, name_row in enumerate(names):
+            for j, name_col in enumerate(names):
+                if i == j:
+                    val = 0 # 자기 자신과의 상호작용은 0
+                else:
+                    # 'A-B' 형식의 키로 점수 조회
+                    key = f"{name_row}-{name_col}"
+                    val = interaction_matrix.get(key, 0) # 값이 없으면 0점
+
+                ResultPlayChemSpecTable.objects.create(
+                    spec=spec,
+                    row=i,
+                    column=j,
+                    interaction=val,
+                )
+
+        return Response(
+            {"result_id": result.result_id},
+            status=status.HTTP_201_CREATED,
         )
 
         for i in range(spec.tablesize):
@@ -420,8 +457,8 @@ class PlayChatSomeAnalyzeView(APIView):
 
         relationship = serializer.validated_data["relationship"]
         age = serializer.validated_data["age"]
-        analysis_start = serializer.validated_data["analysis_start"]
-        analysis_end = serializer.validated_data["analysis_end"]
+        analysis_start = "처음부터" if serializer.validated_data["analysis_start"] == "string" else serializer.validated_data["analysis_start"]
+        analysis_end = "끝까지" if serializer.validated_data["analysis_end"] == "string" else serializer.validated_data["analysis_end"]
 
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
@@ -445,51 +482,55 @@ class PlayChatSomeAnalyzeView(APIView):
 
         # Gemini API 클라이언트를 사용하여 대화 내용을 분석
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        main_output = some_main_with_gemini(chat, client)
-        favorability_output = some_favorability_with_gemini(chat, client)
-        tone_output = some_tone_with_gemini(chat, client)
-        reply_output = some_reply_with_gemini(chat, client)
-        rec_output = some_rec_with_gemini(chat, client)
-        atti_output = some_atti_with_gemini(chat, client)
-        comment_output = some_comment_with_gemini(chat, client)
+        # 분석에 필요한 모든 옵션을 딕셔너리로 구성
+        analysis_option = {
+            "start": analysis_start,
+            "end": analysis_end,
+            "relationship": relationship,
+            "age": age,
+        }
+
+        some_results = some_analysis_with_gemini(chat, client, analysis_option)
 
         ResultPlaySomeSpec.objects.create(
             result=result,
-            score_main=main_output.get("score_main", 0),    # score_A + score_B / 2 로 해도 좋을 듯
-            comment_main=main_output.get("comment_main", ""),
-            score_A=favorability_output.get("score_A", 0),
-            score_B=favorability_output.get("score_B", 0),
-            trait_A=favorability_output.get("trait_A", ""),
-            trait_B=favorability_output.get("trait_B", ""),
-            summary=favorability_output.get("summary", ""),
-            tone=tone_output.get("tone_score", 0),
-            tone_desc=tone_output.get("tone_desc", ""),
-            tone_ex=tone_output.get("tone_ex", ""),
-            emo=tone_output.get("emo_score", 0),
-            emo_desc=tone_output.get("emo_desc", ""),
-            emo_ex=tone_output.get("emo_ex", ""),
-            addr=tone_output.get("addr_score", 0),
-            addr_desc=tone_output.get("addr_desc", ""),
-            addr_ex=tone_output.get("addr_ex", ""),
-            reply_A = reply_output.get("reply_A", 0),
-            reply_B = reply_output.get("reply_B", 0),
-            reply_A_desc = reply_output.get("reply_A_desc", ""),
-            reply_B_desc = reply_output.get("reply_B_desc", ""),
-            rec_A = rec_output.get("rec_A", 0),
-            rec_B = rec_output.get("rec_B", 0),
-            rec_A_desc = rec_output.get("rec_A_desc", ""),
-            rec_B_desc = rec_output.get("rec_B_desc", ""),
-            rec_A_ex = rec_output.get("rec_A_ex", ""),
-            rec_B_ex = rec_output.get("rec_B_ex", ""),
-            atti_A = atti_output.get("atti_A", 0),
-            atti_B = atti_output.get("atti_B", 0),
-            atti_A_desc = atti_output.get("atti_A_desc", ""),
-            atti_B_desc = atti_output.get("atti_B_desc", ""),
-            atti_A_ex = atti_output.get("atti_A_ex", ""),
-            atti_B_ex = atti_output.get("atti_B_ex", ""),
-            pattern_analysis = atti_output.get("pattern_analysis", ""),
-            chatto_counsel = comment_output.get("chatto_counsel", ""),
-            chatto_counsel_tips = comment_output.get("chatto_counsel_tips", ""),
+            name_A=some_results.get("name_A", ""),
+            name_B=some_results.get("name_B", ""),
+            score_main=some_results.get("score_main", 0),    # score_A + score_B / 2 로 해도 좋을 듯
+            comment_main=some_results.get("comment_main", ""),
+            score_A=some_results.get("score_A", 0),
+            score_B=some_results.get("score_B", 0),
+            trait_A=some_results.get("trait_A", ""),
+            trait_B=some_results.get("trait_B", ""),
+            summary=some_results.get("summary", ""),
+            tone=some_results.get("tone_score", 0),
+            tone_desc=some_results.get("tone_desc", ""),
+            tone_ex=some_results.get("tone_ex", ""),
+            emo=some_results.get("emo_score", 0),
+            emo_desc=some_results.get("emo_desc", ""),
+            emo_ex=some_results.get("emo_ex", ""),
+            addr=some_results.get("addr_score", 0),
+            addr_desc=some_results.get("addr_desc", ""),
+            addr_ex=some_results.get("addr_ex", ""),
+            reply_A=some_results.get("reply_A", 0),
+            reply_B=some_results.get("reply_B", 0),
+            reply_A_desc=some_results.get("reply_A_desc", ""),
+            reply_B_desc=some_results.get("reply_B_desc", ""),
+            rec_A=some_results.get("rec_A", 0),
+            rec_B=some_results.get("rec_B", 0),
+            rec_A_desc=some_results.get("rec_A_desc", ""),
+            rec_B_desc=some_results.get("rec_B_desc", ""),
+            rec_A_ex=some_results.get("rec_A_ex", ""),
+            rec_B_ex=some_results.get("rec_B_ex", ""),
+            atti_A=some_results.get("atti_A", 0),
+            atti_B=some_results.get("atti_B", 0),
+            atti_A_desc=some_results.get("atti_A_desc", ""),
+            atti_B_desc = some_results.get("atti_B_desc", ""),
+            atti_A_ex = some_results.get("atti_A_ex", ""),
+            atti_B_ex = some_results.get("atti_B_ex", ""),
+            pattern_analysis = some_results.get("pattern_analysis", ""),
+            chatto_counsel = some_results.get("chatto_counsel", ""),
+            chatto_counsel_tips = some_results.get("chatto_counsel_tips", ""),
         )
 
         return Response(
@@ -531,8 +572,8 @@ class PlayChatMBTIAnalyzeView(APIView):
         if serializer.is_valid() is False:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        analysis_start = serializer.validated_data["analysis_start"]
-        analysis_end = serializer.validated_data["analysis_end"]
+        analysis_start = "처음부터" if serializer.validated_data["analysis_start"] == "string" else serializer.validated_data["analysis_start"]
+        analysis_end = "끝까지" if serializer.validated_data["analysis_end"] == "string" else serializer.validated_data["analysis_end"]
 
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
@@ -553,8 +594,12 @@ class PlayChatMBTIAnalyzeView(APIView):
         )
 
         # 2. Gemini API 클라이언트 초기화 및 MBTI 분석 함수 호출
+        analysis_option = {
+            "start": analysis_start,
+            "end": analysis_end
+        }
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        mbti_results = mbti_analysis_with_gemini(chat, client)
+        mbti_results = mbti_analysis_with_gemini(chat, client, analysis_option)
 
         # 3. 분석 결과가 비어있거나 에러가 있는 경우 처리
         if not mbti_results or "error_message" in mbti_results[0]:
@@ -582,7 +627,7 @@ class PlayChatMBTIAnalyzeView(APIView):
             ResultPlayMBTISpecPersonal.objects.create(
                 spec=spec,
                 name=person_data.get("name", ""),
-                MBTI=person_data.get("mbti", ""),
+                MBTI=person_data.get("MBTI", ""),
                 summary=person_data.get("summary", ""),
                 desc=person_data.get("desc", ""),
                 position=person_data.get("position", ""),
@@ -600,7 +645,7 @@ class PlayChatMBTIAnalyzeView(APIView):
                 momentJP_desc=person_data.get("momentJP_desc", ""),
             )
             # MBTI 지표별 카운트 업데이트
-            mbti = person_data.get("mbti", "")
+            mbti = person_data.get("MBTI", "")
             for char in mbti:
                 if char in totals:
                     totals[char] += 1
