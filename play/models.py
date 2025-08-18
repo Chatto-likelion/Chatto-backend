@@ -105,6 +105,8 @@ class ResultPlayChemSpecTable(models.Model):
 class ResultPlaySomeSpec(models.Model):
     spec_id = models.AutoField(primary_key=True)
     result = models.ForeignKey(ResultPlaySome, on_delete=models.CASCADE)
+    name_A = models.TextField(default="")
+    name_B = models.TextField(default="")
     score_main = models.IntegerField(default=0)
     comment_main = models.TextField(default="")
     score_A = models.IntegerField(default=0)
@@ -137,9 +139,16 @@ class ResultPlaySomeSpec(models.Model):
     atti_B_desc = models.TextField(default="")
     atti_A_ex = models.TextField(default="")
     atti_B_ex = models.TextField(default="")
+    len_A = models.IntegerField(default=0)
+    len_B = models.IntegerField(default=0)
+    len_A_desc = models.TextField(default="")
+    len_B_desc = models.TextField(default="")
+    len_A_ex = models.TextField(default="")
+    len_B_ex = models.TextField(default="")
     pattern_analysis = models.TextField(default="")
     chatto_counsel = models.TextField(default="")
     chatto_counsel_tips = models.TextField(default="")
+
 
 class ResultPlayMBTISpec(models.Model):
     spec_id = models.AutoField(primary_key=True)
