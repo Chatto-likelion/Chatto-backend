@@ -13,13 +13,14 @@ from play.models import (
     ChemQuizQuestion,
     ChemQuizPersonal,
     ChemQuizPersonalDetail,
-)
-from business.models import (
-    ChatBus,
-    ResultBusContrib,
-    ResultBusContribSpec,
-    ResultBusContribSpecPersonal,
-    ResultBusContribSpecPeriod,
+    SomeQuiz,
+    SomeQuizQuestion,
+    SomeQuizPersonal,
+    SomeQuizPersonalDetail,
+    MBTIQuiz,
+    MBTIQuizQuestion,
+    MBTIQuizPersonal,   
+    MBTIQuizPersonalDetail,
 )
 
 # Register your models here.
@@ -37,9 +38,11 @@ admin.site.register(ChemQuiz)
 admin.site.register(ChemQuizQuestion)
 admin.site.register(ChemQuizPersonal)
 admin.site.register(ChemQuizPersonalDetail)
-
-admin.site.register(ChatBus)
-admin.site.register(ResultBusContrib)
-admin.site.register(ResultBusContribSpec)
-admin.site.register(ResultBusContribSpecPersonal)
-admin.site.register(ResultBusContribSpecPeriod)
+admin.site.register(SomeQuiz)
+admin.site.register(SomeQuizQuestion)
+admin.site.register(SomeQuizPersonal)
+admin.site.register(SomeQuizPersonalDetail)
+admin.site.register(MBTIQuiz)
+admin.site.register(MBTIQuizQuestion)
+admin.site.register(MBTIQuizPersonal)
+admin.site.register(MBTIQuizPersonalDetail)

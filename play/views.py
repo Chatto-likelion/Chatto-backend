@@ -206,12 +206,28 @@ class PlayChatDetailView(APIView):
         
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
-            if chat.user != author:
-                return Response(status=status.HTTP_403_FORBIDDEN)
-            chat.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
         except ChatPlay.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if chat.user != author:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        chem_results = ResultPlayChem.objects.filter(chat=chat)
+        some_results = ResultPlaySome.objects.filter(chat=chat)
+        mbti_results = ResultPlayMBTI.objects.filter(chat=chat)
+
+        for result in chem_results:
+            result.chat = None  
+            result.save()
+        for result in some_results:
+            result.chat = None  
+            result.save()
+        for result in mbti_results:
+            result.chat = None  
+            result.save()
+
+        chat.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @swagger_auto_schema(
         operation_id="특정 채팅 제목 수정",
@@ -253,6 +269,8 @@ class PlayChatDetailView(APIView):
         chat.save()
 
         return Response(status=status.HTTP_200_OK)
+
+
 
 ##################################################################
 
@@ -322,6 +340,7 @@ class PlayChatChemAnalyzeView(APIView):
             analysis_date_end=analysis_end,
             chat=chat,
             num_chat=chem_results.get("num_chat", 0)
+            user=author, 
         )
 
         if "error_message" in chem_results:
@@ -474,6 +493,7 @@ class PlayChatSomeAnalyzeView(APIView):
             analysis_date_end=analysis_end,
             num_chat=some_results.get("num_chat", 0),
             chat=chat,
+            user=author,
         )
 
         ResultPlaySomeSpec.objects.create(
@@ -591,6 +611,7 @@ class PlayChatMBTIAnalyzeView(APIView):
             analysis_date_end=analysis_end,
             num_chat=mbti_results[-1].get("num_chat", 0),
             chat=chat,
+            user=author,
         )
 
         # 3. 분석 결과가 비어있거나 에러가 있는 경우 처리
@@ -686,7 +707,7 @@ class PlayChemResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlayChem.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             
             spec = ResultPlayChemSpec.objects.get(result=result)
@@ -721,7 +742,7 @@ class PlayChemResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlayChem.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             result.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -750,7 +771,7 @@ class PlaySomeResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlaySome.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             
             spec = ResultPlaySomeSpec.objects.get(result=result)
@@ -785,7 +806,7 @@ class PlaySomeResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlaySome.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             result.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -815,7 +836,7 @@ class PlayMBTIResultDetailView(APIView):
         try:
             result = ResultPlayMBTI.objects.get(result_id=result_id)
 
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             
             spec = ResultPlayMBTISpec.objects.get(result=result)
@@ -852,7 +873,7 @@ class PlayMBTIResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultPlayMBTI.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             result.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -886,9 +907,9 @@ class PlayResultAllView(APIView):
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        chem_results = ResultPlayChem.objects.filter(chat__user=author)
-        some_results = ResultPlaySome.objects.filter(chat__user=author)
-        mbti_results = ResultPlayMBTI.objects.filter(chat__user=author)
+        chem_results = ResultPlayChem.objects.filter(user=author)
+        some_results = ResultPlaySome.objects.filter(user=author)
+        mbti_results = ResultPlayMBTI.objects.filter(user=author)
 
         # 모델별 직렬화 
         chem_serialized = ChemResultSerializerPlay(chem_results, many=True).data
@@ -1143,7 +1164,7 @@ class PlayChemQuizStartView(APIView):
             ),
         ],
         responses={
-            201: "Created",
+            201: ChemQuizPersonalSerializerPlay,
             400: "Bad Request",
             401: "Unauthorized",
             404: "Not Found"
@@ -1169,13 +1190,15 @@ class PlayChemQuizStartView(APIView):
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
-        ChemQuizPersonal.objects.create(
+        QP = ChemQuizPersonal.objects.create(
             quiz=quiz,
             name=name,
             score=0,  # 초기 점수는 0
         )
 
-        return Response(status=status.HTTP_201_CREATED)
+        serializer = ChemQuizPersonalSerializerPlay(QP)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 # 케미 퀴즈 결과 (문제별 리스트) 한 사람 조회, 케미 퀴즈 결과 한 사람 삭제
@@ -1198,7 +1221,7 @@ class PlayChemQuizPersonalView(APIView):
             404: "Not Found"
         },
     )
-    def get(self, request, result_id, name):
+    def get(self, request, result_id, QP_id):
         author = request.user
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -1206,7 +1229,7 @@ class PlayChemQuizPersonalView(APIView):
         try:
             result = ResultPlayChem.objects.get(result_id=result_id)
             quiz = ChemQuiz.objects.get(result=result)
-            quiz_personal = ChemQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal = ChemQuizPersonal.objects.get(QP_id=QP_id)
             quiz_personal_details = ChemQuizPersonalDetail.objects.filter(QP=quiz_personal)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -1236,7 +1259,7 @@ class PlayChemQuizPersonalView(APIView):
             404: "Not Found"
         },
     )
-    def delete(self, request, result_id, name):
+    def delete(self, request, result_id, QP_id):
         author = request.user
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -1244,7 +1267,7 @@ class PlayChemQuizPersonalView(APIView):
         try:
             result = ResultPlayChem.objects.get(result_id=result_id)
             quiz = ChemQuiz.objects.get(result=result)
-            quiz_personal = ChemQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal = ChemQuizPersonal.objects.get(QP_id=QP_id)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
@@ -1274,7 +1297,7 @@ class PlayChemQuizSubmitView(APIView):
             404: "Not Found"
         },
     )
-    def post(self, request, result_id, name):
+    def post(self, request, result_id, QP_id):
         author = request.user
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -1287,7 +1310,7 @@ class PlayChemQuizSubmitView(APIView):
         try:
             result = ResultPlayChem.objects.get(result_id=result_id)
             quiz = ChemQuiz.objects.get(result=result)
-            quiz_personal = ChemQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal = ChemQuizPersonal.objects.get(QP_id=QP_id)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
@@ -1678,7 +1701,7 @@ class PlaySomeQuizStartView(APIView):
             ),
         ],
         responses={
-            201: "Created",
+            201: SomeQuizPersonalSerializerPlay,
             400: "Bad Request",
             401: "Unauthorized",
             404: "Not Found"
@@ -1704,13 +1727,15 @@ class PlaySomeQuizStartView(APIView):
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
-        SomeQuizPersonal.objects.create(
+        QP = SomeQuizPersonal.objects.create(
             quiz=quiz,
             name=name,
             score=0,  # 초기 점수는 0
         )
 
-        return Response(status=status.HTTP_201_CREATED)
+        serializer = SomeQuizPersonalSerializerPlay(QP)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 # 썸 퀴즈 결과 (문제별 리스트) 한 사람 조회, 썸 퀴즈 결과 한 사람 삭제
@@ -1733,7 +1758,7 @@ class PlaySomeQuizPersonalView(APIView):
             404: "Not Found"
         },
     )
-    def get(self, request, result_id, name):
+    def get(self, request, result_id, QP_id):
         author = request.user
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -1741,7 +1766,7 @@ class PlaySomeQuizPersonalView(APIView):
         try:
             result = ResultPlaySome.objects.get(result_id=result_id)
             quiz = SomeQuiz.objects.get(result=result)
-            quiz_personal = SomeQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal = SomeQuizPersonal.objects.get(QP_id=QP_id)
             quiz_personal_details = SomeQuizPersonalDetail.objects.filter(QP=quiz_personal)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -1771,7 +1796,7 @@ class PlaySomeQuizPersonalView(APIView):
             404: "Not Found"
         },
     )
-    def delete(self, request, result_id, name):
+    def delete(self, request, result_id, QP_id):
         author = request.user
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -1779,7 +1804,7 @@ class PlaySomeQuizPersonalView(APIView):
         try:
             result = ResultPlaySome.objects.get(result_id=result_id)
             quiz = SomeQuiz.objects.get(result=result)
-            quiz_personal = SomeQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal = SomeQuizPersonal.objects.get(QP_id=QP_id)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
@@ -1809,7 +1834,7 @@ class PlaySomeQuizSubmitView(APIView):
             404: "Not Found"
         },
     )
-    def post(self, request, result_id, name):
+    def post(self, request, result_id, QP_id):
         author = request.user
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -1822,7 +1847,7 @@ class PlaySomeQuizSubmitView(APIView):
         try:
             result = ResultPlaySome.objects.get(result_id=result_id)
             quiz = SomeQuiz.objects.get(result=result)
-            quiz_personal = SomeQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal = SomeQuizPersonal.objects.get(QP_id=QP_id)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
@@ -2214,7 +2239,7 @@ class PlayMBTIQuizStartView(APIView):
             ),
         ],
         responses={
-            201: "Created",
+            201: MBTIQuizPersonalSerializerPlay,
             400: "Bad Request",
             401: "Unauthorized",
             404: "Not Found"
@@ -2240,13 +2265,15 @@ class PlayMBTIQuizStartView(APIView):
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
-        MBTIQuizPersonal.objects.create(
+        QP = MBTIQuizPersonal.objects.create(
             quiz=quiz,
             name=name,
             score=0,  # 초기 점수는 0
         )
 
-        return Response(status=status.HTTP_201_CREATED)
+        serializer = MBTIQuizPersonalSerializerPlay(QP)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 # MBTI 퀴즈 결과 (문제별 리스트) 한 사람 조회, MBTI 퀴즈 결과 한 사람 삭제
@@ -2269,7 +2296,7 @@ class PlayMBTIQuizPersonalView(APIView):
             404: "Not Found"
         },
     )
-    def get(self, request, result_id, name):
+    def get(self, request, result_id, QP_id):
         author = request.user
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -2277,7 +2304,7 @@ class PlayMBTIQuizPersonalView(APIView):
         try:
             result = ResultPlayMBTI.objects.get(result_id=result_id)
             quiz = MBTIQuiz.objects.get(result=result)
-            quiz_personal = MBTIQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal = MBTIQuizPersonal.objects.get(QP_id=QP_id)
             quiz_personal_details = MBTIQuizPersonalDetail.objects.filter(QP=quiz_personal)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -2307,7 +2334,7 @@ class PlayMBTIQuizPersonalView(APIView):
             404: "Not Found"
         },
     )
-    def delete(self, request, result_id, name):
+    def delete(self, request, result_id, QP_id):
         author = request.user
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -2315,7 +2342,7 @@ class PlayMBTIQuizPersonalView(APIView):
         try:
             result = ResultPlayMBTI.objects.get(result_id=result_id)
             quiz = MBTIQuiz.objects.get(result=result)
-            quiz_personal = MBTIQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal = MBTIQuizPersonal.objects.get(QP_id=QP_id)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
@@ -2345,7 +2372,7 @@ class PlayMBTIQuizSubmitView(APIView):
             404: "Not Found"
         },
     )
-    def post(self, request, result_id, name):
+    def post(self, request, result_id, QP_id):
         author = request.user
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -2358,7 +2385,7 @@ class PlayMBTIQuizSubmitView(APIView):
         try:
             result = ResultPlayMBTI.objects.get(result_id=result_id)
             quiz = MBTIQuiz.objects.get(result=result)
-            quiz_personal = MBTIQuizPersonal.objects.get(quiz=quiz, name=name)
+            quiz_personal = MBTIQuizPersonal.objects.get(QP_id=QP_id)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         

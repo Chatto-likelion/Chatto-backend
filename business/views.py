@@ -209,6 +209,7 @@ class BusChatContribAnalyzeView(APIView):
             analysis_date_start=analysis_date_start,
             analysis_date_end=analysis_date_end,
             chat=chat,
+            user=author,
         )
 
         size = 5 if chat.people_num >= 5 else chat.people_num
@@ -328,7 +329,7 @@ class BusContribResultDetailView(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             result = ResultBusContrib.objects.get(result_id=result_id)
-            if result.chat.user != author:
+            if result.user != author:
                 return Response(status=status.HTTP_403_FORBIDDEN)
             
             spec = ResultBusContribSpec.objects.get(result=result)
@@ -398,7 +399,7 @@ class BusResultAllView(APIView):
         if not author.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         
-        contrib_results = ResultBusContrib.objects.filter(chat__user=author)
+        contrib_results = ResultBusContrib.objects.filter(user=author)
 
         contrib_serialized = ContribResultSerializerBus(contrib_results, many=True).data
 
