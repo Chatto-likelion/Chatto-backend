@@ -96,6 +96,8 @@ from .utils import (
     mbti_analysis_with_gemini,
     chem_analysis_with_gemini,
 )
+
+from datetime import datetime, date
     
 
 class PlayChatView(APIView):
@@ -306,6 +308,9 @@ class PlayChatChemAnalyzeView(APIView):
             "situation": situation,
         }
 
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        chem_results = chem_analysis_with_gemini(chat, client, analysis_option)
+
         result = ResultPlayChem.objects.create(
             type=1,
             is_saved=1,
@@ -316,10 +321,8 @@ class PlayChatChemAnalyzeView(APIView):
             analysis_date_start=analysis_start,
             analysis_date_end=analysis_end,
             chat=chat,
+            num_chat=chem_results.get("num_chat", 0)
         )
-
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        chem_results = chem_analysis_with_gemini(chat, client, analysis_option)
 
         if "error_message" in chem_results:
             result.delete()
@@ -403,26 +406,6 @@ class PlayChatChemAnalyzeView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
-        for i in range(spec.tablesize):
-            for j in range(spec.tablesize):
-                if i == j:
-                    val = 0
-                else:
-                    val = 1
-                ResultPlayChemSpecTable.objects.create(
-                    spec=spec,
-                    row=i,
-                    column=j,
-                    interaction=val,
-                )
-
-        return Response(
-            {
-                "result_id": result.result_id,
-            },
-            status=status.HTTP_201_CREATED,
-        )
-
 
 class PlayChatSomeAnalyzeView(APIView):
     @swagger_auto_schema(
@@ -457,8 +440,8 @@ class PlayChatSomeAnalyzeView(APIView):
 
         relationship = serializer.validated_data["relationship"]
         age = serializer.validated_data["age"]
-        analysis_start = "처음부터" if serializer.validated_data["analysis_start"] == "string" else serializer.validated_data["analysis_start"]
-        analysis_end = "끝까지" if serializer.validated_data["analysis_end"] == "string" else serializer.validated_data["analysis_end"]
+        analysis_start = "처음부터" if serializer.validated_data["analysis_start"] == "string" else date(2025, 7, 25)
+        analysis_end = "끝까지" if serializer.validated_data["analysis_end"] == "string" else date(2025, 8, 18)
 
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
@@ -467,18 +450,6 @@ class PlayChatSomeAnalyzeView(APIView):
         except ChatPlay.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-
-        result = ResultPlaySome.objects.create(
-            type=2,
-            title=chat.title,
-            people_num=chat.people_num,
-            is_saved=1,
-            relationship=relationship,
-            age=age,
-            analysis_date_start=analysis_start,
-            analysis_date_end=analysis_end,
-            chat=chat,
-        )
 
         # Gemini API 클라이언트를 사용하여 대화 내용을 분석
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
@@ -491,6 +462,19 @@ class PlayChatSomeAnalyzeView(APIView):
         }
 
         some_results = some_analysis_with_gemini(chat, client, analysis_option)
+
+        result = ResultPlaySome.objects.create(
+            type=2,
+            title=chat.title,
+            people_num=chat.people_num,
+            is_saved=1,
+            relationship=relationship,
+            age=age,
+            analysis_date_start=analysis_start,
+            analysis_date_end=analysis_end,
+            num_chat=some_results.get("num_chat", 0),
+            chat=chat,
+        )
 
         ResultPlaySomeSpec.objects.create(
             result=result,
@@ -528,6 +512,12 @@ class PlayChatSomeAnalyzeView(APIView):
             atti_B_desc = some_results.get("atti_B_desc", ""),
             atti_A_ex = some_results.get("atti_A_ex", ""),
             atti_B_ex = some_results.get("atti_B_ex", ""),
+            len_A=some_results.get("len_A", 0),
+            len_B=some_results.get("len_B", 0),
+            len_A_desc=some_results.get("len_A_desc", ""),
+            len_B_desc=some_results.get("len_B_desc", ""),
+            len_A_ex=some_results.get("len_A_ex", ""),
+            len_B_ex=some_results.get("len_B_ex", ""),
             pattern_analysis = some_results.get("pattern_analysis", ""),
             chatto_counsel = some_results.get("chatto_counsel", ""),
             chatto_counsel_tips = some_results.get("chatto_counsel_tips", ""),
@@ -582,7 +572,16 @@ class PlayChatMBTIAnalyzeView(APIView):
         except ChatPlay.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        # 1. ResultPlayMBTI 객체 생성
+
+        # 1. Gemini API 클라이언트 초기화 및 MBTI 분석 함수 호출
+        analysis_option = {
+            "start": analysis_start,
+            "end": analysis_end
+        }
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        mbti_results = mbti_analysis_with_gemini(chat, client, analysis_option)
+
+        # 2. ResultPlayMBTI 객체 생성
         result = ResultPlayMBTI.objects.create(
             type=3,
             title=chat.title,
@@ -590,16 +589,9 @@ class PlayChatMBTIAnalyzeView(APIView):
             is_saved=1,
             analysis_date_start=analysis_start,
             analysis_date_end=analysis_end,
+            num_chat=mbti_results[-1].get("num_chat", 0),
             chat=chat,
         )
-
-        # 2. Gemini API 클라이언트 초기화 및 MBTI 분석 함수 호출
-        analysis_option = {
-            "start": analysis_start,
-            "end": analysis_end
-        }
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        mbti_results = mbti_analysis_with_gemini(chat, client, analysis_option)
 
         # 3. 분석 결과가 비어있거나 에러가 있는 경우 처리
         if not mbti_results or "error_message" in mbti_results[0]:
@@ -623,7 +615,7 @@ class PlayChatMBTIAnalyzeView(APIView):
         }
 
         # 각 참여자별 분석 결과를 ResultPlayMBTISpecPersonal에 저장
-        for person_data in mbti_results:
+        for person_data in mbti_results[:-1]:
             ResultPlayMBTISpecPersonal.objects.create(
                 spec=spec,
                 name=person_data.get("name", ""),
