@@ -318,18 +318,19 @@ class PlayChatChemAnalyzeView(APIView):
         relationship = serializer.validated_data["relationship"]
         situation = serializer.validated_data["situation"]
 
-        if serializer.validated_data["analysis_start"] == "string":
+        if serializer.validated_data["analysis_start"] == "처음부터":
             analysis_start = "처음부터"
         else:
             y, m, d = serializer.validated_data["analysis_start"].split("-")
             analysis_start = date(int(y), int(m), int(d))
 
-        if serializer.validated_data["analysis_end"] == "string":
-            analysis_end = "마지막까지"
+        if serializer.validated_data["analysis_end"] == "끝까지":
+            analysis_end = "끝까지"
         else:
             y, m, d = serializer.validated_data["analysis_end"].split("-")
             analysis_end = date(int(y), int(m), int(d))
 
+        print(analysis_start, analysis_end)
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
             if chat.user != author:
@@ -480,14 +481,14 @@ class PlayChatSomeAnalyzeView(APIView):
         relationship = serializer.validated_data["relationship"]
         age = serializer.validated_data["age"]
 
-        if serializer.validated_data["analysis_start"] == "string":
+        if serializer.validated_data["analysis_start"] == "처음부터":
             analysis_start = "처음부터"
         else:
             y, m, d = serializer.validated_data["analysis_start"].split("-")
             analysis_start = date(int(y), int(m), int(d))
 
-        if serializer.validated_data["analysis_end"] == "string":
-            analysis_end = "마지막까지"
+        if serializer.validated_data["analysis_end"] == "끝까지":
+            analysis_end = "끝까지"
         else:
             y, m, d = serializer.validated_data["analysis_end"].split("-")
             analysis_end = date(int(y), int(m), int(d))
@@ -614,14 +615,14 @@ class PlayChatMBTIAnalyzeView(APIView):
         if serializer.is_valid() is False:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        if serializer.validated_data["analysis_start"] == "string":
+        if serializer.validated_data["analysis_start"] == "처음부터":
             analysis_start = "처음부터"
         else:
             y, m, d = serializer.validated_data["analysis_start"].split("-")
             analysis_start = date(int(y), int(m), int(d))
 
-        if serializer.validated_data["analysis_end"] == "string":
-            analysis_end = "마지막까지"
+        if serializer.validated_data["analysis_end"] == "끝까지":
+            analysis_end = "끝까지"
         else:
             y, m, d = serializer.validated_data["analysis_end"].split("-")
             analysis_end = date(int(y), int(m), int(d))
