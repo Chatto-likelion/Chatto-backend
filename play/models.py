@@ -24,6 +24,7 @@ class ResultPlayChem(models.Model):
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
     num_chat = models.IntegerField(default=0)
+    is_quized = models.BooleanField(default=False)
     chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
@@ -39,6 +40,7 @@ class ResultPlaySome(models.Model):
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
     num_chat = models.IntegerField(default=0)
+    is_quized = models.BooleanField(default=False)
     chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
@@ -52,6 +54,7 @@ class ResultPlayMBTI(models.Model):
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
     num_chat = models.IntegerField(default=0)
+    is_quized = models.BooleanField(default=False)
     chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
