@@ -34,7 +34,10 @@ import re
 from google import genai
 from django.conf import settings
 
-
+from .utils import(
+    extract_chat_title,
+    count_chat_participants_with_gemini,
+)
 
 # Create your views here.
 class BusChatView(APIView):
