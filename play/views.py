@@ -1135,11 +1135,11 @@ def generate_ChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
     # 퀴즈 생성에 참고할 자료들 가져오기
     chat = result.chat
     if not chat.file:
-        return Response({"detail": "채팅 파일이 존재하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+        return {"detail": "채팅 파일이 존재하지 않습니다."}
     try:
         spec = ResultPlayChemSpec.objects.get(result=result)
     except:
-        return Response({"detail": "케미 분석 결과가 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        return {"detail": "케미 분석 결과가 존재하지 않습니다."}
     
     # 채팅 파일 열기
     file_path = chat.file.path
@@ -1147,7 +1147,7 @@ def generate_ChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
         with open(file_path, "r", encoding="utf-8") as f:
             chat_content = f.read()  # 파일 전체 내용 읽기
     except FileNotFoundError:
-        return Response({"detail": "채팅 파일을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        return {"detail": "채팅 파일이 존재하지 않습니다."}
 
     names = [spec.name_0, spec.name_1, spec.name_2, spec.name_3, spec.name_4]
     scores = [[0 for _ in range(spec.tablesize)] for _ in range(spec.tablesize)]
@@ -1393,6 +1393,11 @@ class PlayChemQuizView(APIView):
 
         # 케미 퀴즈 생성
         quiz_data = generate_ChemQuiz(result, client)
+
+        if quiz_data == {"detail": "채팅 파일이 존재하지 않습니다."}:
+            return Response({"detail": "채팅 파일이 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        elif quiz_data == {"detail": "케미 분석 결과가 존재하지 않습니다."}:
+            return Response({"detail": "케미 분석 결과가 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
 
         quiz = ChemQuiz.objects.create(
             result=result,
@@ -1896,11 +1901,11 @@ def generate_SomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
     # 퀴즈 생성에 참고할 자료들 가져오기
     chat = result.chat
     if not chat.file:
-        return Response({"detail": "채팅 파일이 존재하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+        return {"detail": "채팅 파일이 존재하지 않습니다."}
     try:
         spec = ResultPlaySomeSpec.objects.get(result=result)
     except:
-        return Response({"detail": "해당 분석 결과의 스펙이 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        return {"detail": "해당 분석 결과의 스펙이 존재하지 않습니다."}
     
     # 채팅 파일 열기
     file_path = chat.file.path
@@ -1908,11 +1913,11 @@ def generate_SomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
         with open(file_path, "r", encoding="utf-8") as f:
             chat_content = f.read()  # 파일 전체 내용 읽기
     except FileNotFoundError:
-        return Response({"detail": "채팅 파일을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        return {"detail": "채팅 파일이 존재하지 않습니다."}
 
     prompt = f"""
         당신은 카카오톡 대화 파일을 분석하여 두 사람 사이의 썸 기류를 평가하는 전문가입니다.
-        주어진 채팅 대화 내용과 썸 분석 결과를 바탕으로 두 사람에 대한 썸 퀴즈 1개를 생성해주세요.
+        주어진 채팅 대화 내용과 썸 분석 결과를 바탕으로 두 사람에 대한 썸 퀴즈 10개를 생성해주세요.
         썸 퀴즈는 4지선다형으로, 정답은 1개입니다.
 
         주어진 채팅 대화 내용: 
@@ -1953,7 +1958,7 @@ def generate_SomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
         {spec.chatto_counsel}
         {spec.chatto_counsel_tips}
 
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다:
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
@@ -2130,6 +2135,11 @@ class PlaySomeQuizView(APIView):
 
         # 썸 퀴즈 생성
         quiz_data = generate_SomeQuiz(result, client)
+
+        if quiz_data == {"detail": "채팅 파일이 존재하지 않습니다."}:
+            return Response({"detail": "채팅 파일이 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        elif quiz_data == {"detail": "해당 분석 결과의 스펙이 존재하지 않습니다."}:
+            return Response({"detail": "해당 분석 결과의 스펙이 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
 
         quiz = SomeQuiz.objects.create(
             result=result,
@@ -2633,12 +2643,12 @@ def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
     # 퀴즈 생성에 참고할 자료들 가져오기
     chat = result.chat
     if not chat.file:
-        return Response({"detail": "채팅 파일이 존재하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+        return {"detail": "채팅 파일이 존재하지 않습니다."}
     try:
         spec = ResultPlayMBTISpec.objects.get(result=result)
-        spec_personals = ResultPlayMBTISpecPersonal.objects.filter(result=result)
-    except :
-        return Response({"detail": "MBTI 분석 결과가 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        spec_personals = ResultPlayMBTISpecPersonal.objects.filter(spec=spec)
+    except:
+        return {"detail": "MBTI 분석 결과가 존재하지 않습니다."}
 
     # 채팅 파일 열기
     file_path = chat.file.path
@@ -2646,7 +2656,7 @@ def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
         with open(file_path, "r", encoding="utf-8") as f:
             chat_content = f.read()  # 파일 전체 내용 읽기
     except FileNotFoundError:
-        return Response({"detail": "채팅 파일을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        return {"detail": "채팅 파일이 존재하지 않습니다."}
     
     total = spec.total_E + spec.total_I
     names = ["" for _ in range(total)]
@@ -2667,7 +2677,7 @@ def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
             {names[i]}의 단톡 내 포지션은 다음과 같습니다: {spec_personals[i].position}
             {names[i]}의 단톡 내 성향은 다음과 같습니다: {spec_personals[i].personality}
             {names[i]}의 대화 특징은 다음과 같습니다: {spec_personals[i].style}
-            {names[i]}의 MBTI 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].MBTI_ex}, {spec_personals[i].MBTI_desc}
+            {names[i]}의 MBTI 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].moment_ex}, {spec_personals[i].moment_desc}
             {names[i]}의 IE 성향 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].momentIE_ex}, {spec_personals[i].momentIE_desc}
             {names[i]}의 NS 성향 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].momentSN_ex}, {spec_personals[i].momentSN_desc}
             {names[i]}의 TF 성향 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].momentFT_ex}, {spec_personals[i].momentFT_desc}
@@ -2676,7 +2686,7 @@ def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
         
     prompt = f"""
         당신은 카카오톡 대화 파일을 분석하여 대화 참여자들의 MBTI를 분석하는 전문가입니다.
-        주어진 채팅 대화 내용과 MBTI 분석 결과를 바탕으로 두 사람에 대한 MBTI 퀴즈 1개를 생성해주세요.
+        주어진 채팅 대화 내용과 MBTI 분석 결과를 바탕으로 두 사람에 대한 MBTI 퀴즈 10개를 생성해주세요.
         MBTI 퀴즈는 4지선다형으로, 정답은 1개입니다.
 
         주어진 채팅 대화 내용: 
@@ -2694,16 +2704,70 @@ def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
 
         개인별 분석 결과:{[r for r in personal_results]}
         
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다:
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
-        문제: [문제 내용]
-        선택지1: [선택지 1 내용]
-        선택지2: [선택지 2 내용]
-        선택지3: [선택지 3 내용]
-        선택지4: [선택지 4 내용]
-        정답: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제1: [문제 내용]
+        선택지1-1: [선택지 1 내용]
+        선택지1-2: [선택지 2 내용]
+        선택지1-3: [선택지 3 내용]
+        선택지1-4: [선택지 4 내용]
+        정답1: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제2: [문제 내용]
+        선택지2-1: [선택지 1 내용]
+        선택지2-2: [선택지 2 내용]
+        선택지2-3: [선택지 3 내용]
+        선택지2-4: [선택지 4 내용]
+        정답2: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제3: [문제 내용]
+        선택지3-1: [선택지 1 내용]  
+        선택지3-2: [선택지 2 내용]
+        선택지3-3: [선택지 3 내용]
+        선택지3-4: [선택지 4 내용]
+        정답3: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제4: [문제 내용]
+        선택지4-1: [선택지 1 내용]
+        선택지4-2: [선택지 2 내용]
+        선택지4-3: [선택지 3 내용]
+        선택지4-4: [선택지 4 내용]
+        정답4: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제5: [문제 내용]
+        선택지5-1: [선택지 1 내용]
+        선택지5-2: [선택지 2 내용]
+        선택지5-3: [선택지 3 내용]
+        선택지5-4: [선택지 4 내용]
+        정답5: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제6: [문제 내용]
+        선택지6-1: [선택지 1 내용]
+        선택지6-2: [선택지 2 내용]
+        선택지6-3: [선택지 3 내용]
+        선택지6-4: [선택지 4 내용]
+        정답6: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제7: [문제 내용]
+        선택지7-1: [선택지 1 내용]
+        선택지7-2: [선택지 2 내용]
+        선택지7-3: [선택지 3 내용]
+        선택지7-4: [선택지 4 내용]
+        정답7: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제8: [문제 내용]
+        선택지8-1: [선택지 1 내용]
+        선택지8-2: [선택지 2 내용]
+        선택지8-3: [선택지 3 내용]
+        선택지8-4: [선택지 4 내용]
+        정답8: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제9: [문제 내용]
+        선택지9-1: [선택지 1 내용]
+        선택지9-2: [선택지 2 내용]
+        선택지9-3: [선택지 3 내용]
+        선택지9-4: [선택지 4 내용]
+        정답9: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제10: [문제 내용]
+        선택지10-1: [선택지 1 내용]
+        선택지10-2: [선택지 2 내용]
+        선택지10-3: [선택지 3 내용]
+        선택지10-4: [선택지 4 내용]
+        정답10: [정답 선택지 번호 (1, 2, 3, 4)]
         """
     
     response = client.models.generate_content(
@@ -2716,12 +2780,66 @@ def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
     print(f"Gemini로 생성된 MBTI 퀴즈 응답: {response_text}")
 
     return {
-        "question": parse_response(r"문제:\s*(.+)", response_text),
-        "choice1": parse_response(r"선택지1:\s*(.+)", response_text),
-        "choice2": parse_response(r"선택지2:\s*(.+)", response_text),
-        "choice3": parse_response(r"선택지3:\s*(.+)", response_text),
-        "choice4": parse_response(r"선택지4:\s*(.+)", response_text),
-        "answer": parse_response(r"정답:\s*(\d+)", response_text, is_int=True),
+        "question1": parse_response(r"문제1:\s*(.+)", response_text),
+        "choice1-1": parse_response(r"선택지1-1:\s*(.+)", response_text),
+        "choice1-2": parse_response(r"선택지1-2:\s*(.+)", response_text),
+        "choice1-3": parse_response(r"선택지1-3:\s*(.+)", response_text),
+        "choice1-4": parse_response(r"선택지1-4:\s*(.+)", response_text),
+        "answer1": parse_response(r"정답1:\s*(\d+)", response_text, is_int=True),
+        "question2": parse_response(r"문제2:\s*(.+)", response_text),
+        "choice2-1": parse_response(r"선택지2-1:\s*(.+)", response_text),
+        "choice2-2": parse_response(r"선택지2-2:\s*(.+)", response_text),
+        "choice2-3": parse_response(r"선택지2-3:\s*(.+)", response_text),
+        "choice2-4": parse_response(r"선택지2-4:\s*(.+)", response_text),
+        "answer2": parse_response(r"정답2:\s*(\d+)", response_text, is_int=True),
+        "question3": parse_response(r"문제3:\s*(.+)", response_text),
+        "choice3-1": parse_response(r"선택지3-1:\s*(.+)", response_text),
+        "choice3-2": parse_response(r"선택지3-2:\s*(.+)", response_text),
+        "choice3-3": parse_response(r"선택지3-3:\s*(.+)", response_text),
+        "choice3-4": parse_response(r"선택지3-4:\s*(.+)", response_text),
+        "answer3": parse_response(r"정답3:\s*(\d+)", response_text, is_int=True),
+        "question4": parse_response(r"문제4:\s*(.+)", response_text),
+        "choice4-1": parse_response(r"선택지4-1:\s*(.+)", response_text),
+        "choice4-2": parse_response(r"선택지4-2:\s*(.+)", response_text),
+        "choice4-3": parse_response(r"선택지4-3:\s*(.+)", response_text),
+        "choice4-4": parse_response(r"선택지4-4:\s*(.+)", response_text),
+        "answer4": parse_response(r"정답4:\s*(\d+)", response_text, is_int=True),
+        "question5": parse_response(r"문제5:\s*(.+)", response_text),
+        "choice5-1": parse_response(r"선택지5-1:\s*(.+)", response_text),
+        "choice5-2": parse_response(r"선택지5-2:\s*(.+)", response_text),
+        "choice5-3": parse_response(r"선택지5-3:\s*(.+)", response_text),
+        "choice5-4": parse_response(r"선택지5-4:\s*(.+)", response_text),
+        "answer5": parse_response(r"정답5:\s*(\d+)", response_text, is_int=True),
+        "question6": parse_response(r"문제6:\s*(.+)", response_text),
+        "choice6-1": parse_response(r"선택지6-1:\s*(.+)", response_text),
+        "choice6-2": parse_response(r"선택지6-2:\s*(.+)", response_text),
+        "choice6-3": parse_response(r"선택지6-3:\s*(.+)", response_text),
+        "choice6-4": parse_response(r"선택지6-4:\s*(.+)", response_text),
+        "answer6": parse_response(r"정답6:\s*(\d+)", response_text, is_int=True),
+        "question7": parse_response(r"문제7:\s*(.+)", response_text),
+        "choice7-1": parse_response(r"선택지7-1:\s*(.+)", response_text),
+        "choice7-2": parse_response(r"선택지7-2:\s*(.+)", response_text),
+        "choice7-3": parse_response(r"선택지7-3:\s*(.+)", response_text),
+        "choice7-4": parse_response(r"선택지7-4:\s*(.+)", response_text),
+        "answer7": parse_response(r"정답7:\s*(\d+)", response_text, is_int=True),
+        "question8": parse_response(r"문제8:\s*(.+)", response_text),
+        "choice8-1": parse_response(r"선택지8-1:\s*(.+)", response_text),
+        "choice8-2": parse_response(r"선택지8-2:\s*(.+)", response_text),
+        "choice8-3": parse_response(r"선택지8-3:\s*(.+)", response_text),
+        "choice8-4": parse_response(r"선택지8-4:\s*(.+)", response_text),
+        "answer8": parse_response(r"정답8:\s*(\d+)", response_text, is_int=True),
+        "question9": parse_response(r"문제9:\s*(.+)", response_text),
+        "choice9-1": parse_response(r"선택지9-1:\s*(.+)", response_text),
+        "choice9-2": parse_response(r"선택지9-2:\s*(.+)", response_text),
+        "choice9-3": parse_response(r"선택지9-3:\s*(.+)", response_text),
+        "choice9-4": parse_response(r"선택지9-4:\s*(.+)", response_text),
+        "answer9": parse_response(r"정답9:\s*(\d+)", response_text, is_int=True),
+        "question10": parse_response(r"문제10:\s*(.+)", response_text),
+        "choice10-1": parse_response(r"선택지10-1:\s*(.+)", response_text),
+        "choice10-2": parse_response(r"선택지10-2:\s*(.+)", response_text),
+        "choice10-3": parse_response(r"선택지10-3:\s*(.+)", response_text),
+        "choice10-4": parse_response(r"선택지10-4:\s*(.+)", response_text),
+        "answer10": parse_response(r"정답10:\s*(\d+)", response_text, is_int=True),
     }
 
 # MBTI 퀴즈 생성, MBTI 퀴즈 조회, MBTI 퀴즈 삭제
@@ -2757,17 +2875,21 @@ class PlayMBTIQuizView(APIView):
         
         if result.chat.user != author:
             return Response(status=status.HTTP_403_FORBIDDEN)
-        
-        # spec과 spec_personals 가져온 이유: 이거 보고 퀴즈 생성! (물론 chat의 내용도 보고)
-        spec = ResultPlayMBTISpec.objects.get(result=result)
-        spec_personals = ResultPlayMBTISpecPersonal.objects.filter(spec=spec)
 
         if MBTIQuiz.objects.filter(result=result).exists():
             return Response({"detail": "이미 해당 분석 결과에 대한 퀴즈가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # MBTI 퀴즈 생성
+        quiz_data = generate_MBTIQuiz(result, client)
+
+        if quiz_data == {"detail": "채팅 파일이 존재하지 않습니다."}:
+            return Response({"detail": "채팅 파일이 존재하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+        elif quiz_data == {"detail": "MBTI 분석 결과가 존재하지 않습니다."}:
+            return Response({"detail": "MBTI 분석 결과가 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+
         quiz = MBTIQuiz.objects.create(
             result=result,
-            question_num=3,
+            question_num=10,
             solved_num=0,
             avg_score=0,
         )
@@ -2776,12 +2898,12 @@ class PlayMBTIQuizView(APIView):
             MBTIQuizQuestion.objects.create(
                 quiz=quiz,
                 question_index=i,
-                question=f"{i}번째 질문 내용",
-                choice1="MBTI 1",
-                choice2="MBTI 2",
-                choice3="MBTI 3",
-                choice4="MBTI 4",
-                answer=1,
+                question=quiz_data[f"question{i+1}"],
+                choice1=quiz_data[f"choice{i+1}-1"],
+                choice2=quiz_data[f"choice{i+1}-2"],
+                choice3=quiz_data[f"choice{i+1}-3"],
+                choice4=quiz_data[f"choice{i+1}-4"],
+                answer=quiz_data[f"answer{i+1}"],
                 correct_num=0,
                 count1=0,
                 count2=0,
