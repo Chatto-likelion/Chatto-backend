@@ -347,7 +347,7 @@ class PlayChatChemAnalyzeView(APIView):
             analysis_date_start=analysis_start,
             analysis_date_end=analysis_end,
             chat=chat,
-            num_chat=chem_results.get("num_chat", 0)
+            num_chat=chem_results.get("num_chat", 0),
             user=author, 
         )
 
