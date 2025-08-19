@@ -75,6 +75,7 @@ class ResultPlayChemSpec(models.Model):
     top3_comment = models.TextField(default="")
     tone_pos = models.IntegerField(default=0)
     tone_humer = models.IntegerField(default=0)
+    tone_crit = models.IntegerField(default=0)
     tone_else = models.IntegerField(default=0)
     tone_ex = models.TextField(default="")
     resp_time = models.IntegerField(default=0)
