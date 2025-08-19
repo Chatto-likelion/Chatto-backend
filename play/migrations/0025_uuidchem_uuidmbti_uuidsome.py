@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('play', '0024_resultplaychem_user_resultplaymbti_user_and_more'),
+        ('play', '0024_resultplaychem_num_chat_resultplaymbti_num_chat_and_more'),
     ]
 
     operations = [
