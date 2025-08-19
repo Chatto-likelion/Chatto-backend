@@ -68,7 +68,7 @@ urlpatterns = [
 
 
     path("chat/uuid/<int:result_id>", GenerateUUIDView.as_view()),
-    path("char/uuid/search/<uuid:uuid>/", UuidToTypeView.as_view()),
+    path("chat/uuid/search/<uuid:uuid>/", UuidToTypeView.as_view()),
     path("analysis/chem/guest/<uuid:uuid>/detail/", PlayChemResultDetailViewGuest.as_view()),
     path("analysis/some/guest/<uuid:uuid>/detail/", PlaySomeResultDetailViewGuest.as_view()),
     path("analysis/mbti/guest/<uuid:uuid>/detail/", PlayMBTIResultDetailViewGuest.as_view()),

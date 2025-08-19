@@ -8,3 +8,8 @@ class ChatAnalysisRequestSerializerBus(serializers.Serializer):
     team_type = serializers.CharField()
     analysis_start = serializers.CharField()
     analysis_end = serializers.CharField()
+
+###############################################################
+
+class UuidRequestSerializerBus(serializers.Serializer):
+    type = serializers.CharField()
