@@ -25,6 +25,10 @@ class ResultBusContrib(models.Model):
     chat = models.ForeignKey(ChatBus, on_delete=models.SET_NULL, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
+class UuidContrib(models.Model):
+    uuid = models.UUIDField(primary_key=True, unique=True)
+    result = models.ForeignKey(ResultBusContrib, on_delete=models.CASCADE, null=True, blank=True)
+
 class ResultBusContribSpec(models.Model):
     spec_id = models.AutoField(primary_key=True)
     result = models.ForeignKey(ResultBusContrib, on_delete=models.CASCADE)

@@ -7,16 +7,19 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import uuid
 
 from .request_serializers import (
     ChatUploadRequestSerializerBus,
     ChatAnalysisRequestSerializerBus,
+    UuidRequestSerializerBus,
 )
 from .serializers import (
     AnalyseResponseSerializerBus,
     ChatSerializerBus,
     ContribResultSerializerBus,
-    ContribAllSerializerBus
+    ContribAllSerializerBus,
+    ContribUuidSerializerBus,
 )
 
 from .models import (
@@ -25,6 +28,7 @@ from .models import (
     ResultBusContribSpec,
     ResultBusContribSpecPersonal,
     ResultBusContribSpecPeriod,
+    UuidContrib,
 )
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -152,6 +156,106 @@ class BusChatDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+
+
+###################################################################
+
+
+
+# UUID 생성
+class GenerateUUIDView(APIView):
+    @swagger_auto_schema(
+        operation_id="UUID 생성",
+        operation_description="특정 분석 결과(chem/some/mbti)에 대한 공유용 UUID를 생성합니다.",
+        request_body=UuidRequestSerializerBus,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            201: ContribUuidSerializerBus,
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found",
+        },
+    )
+    def post(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        new_uuid = str(uuid.uuid4())
+
+        request_serializer = UuidRequestSerializerBus(data=request.data)
+        if request_serializer.is_valid() is False:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        type = request_serializer.validated_data["type"]
+
+        if type == "contrib":
+            try:
+                result = ResultBusContrib.objects.get(result_id=result_id)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            if result.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            share = UuidContrib.objects.create(
+                result=result,
+                uuid=new_uuid,
+            )
+            serializer = ContribUuidSerializerBus(share)
+
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# UUID --> 케미/썸/MBTI 변환
+class UuidToTypeView(APIView):
+    @swagger_auto_schema(
+        operation_id="UUID로 타입 조회",
+        operation_description="UUID를 통해 해당 결과가 chem/some/mbti 중 어떤 타입인지 반환합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "uuid",
+                openapi.IN_PATH,
+                description="공유용 UUID",
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="타입 반환 성공",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "type": openapi.Schema(type=openapi.TYPE_STRING, description="결과 타입 (contrib)"),
+                    },
+                ),
+            ),
+            404: openapi.Response(
+                description="UUID에 해당하는 타입 없음",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "type": openapi.Schema(type=openapi.TYPE_STRING, description="None"),
+                    },
+                ),
+            ),
+        },
+    )
+    def get(self, request, uuid):
+        if UuidContrib.objects.filter(uuid=uuid).exists():
+            return Response({"type": "contrib"}, status=status.HTTP_200_OK)
+        else:
+            return Response({"type": None}, status=status.HTTP_404_NOT_FOUND)
+                
 
 
 ###################################################################
