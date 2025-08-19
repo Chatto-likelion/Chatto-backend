@@ -103,6 +103,7 @@ from .utils import (
     some_analysis_with_gemini,
     mbti_analysis_with_gemini,
     chem_analysis_with_gemini,
+    parse_response,
 )
 
 from datetime import datetime, date
@@ -1095,6 +1096,232 @@ class GenerateUUIDView(APIView):
 ###################################################################
 
 
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+def generate_ChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
+    
+    # 퀴즈 생성에 참고할 자료들 가져오기
+    chat = result.chat
+    if not chat.file:
+        return Response({"detail": "채팅 파일이 존재하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        spec = ResultPlayChemSpec.objects.get(result=result)
+    except:
+        return Response({"detail": "케미 분석 결과가 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+    
+    # 채팅 파일 열기
+    file_path = chat.file.path
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            chat_content = f.read()  # 파일 전체 내용 읽기
+    except FileNotFoundError:
+        return Response({"detail": "채팅 파일을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+    names = [spec.name_0, spec.name_1, spec.name_2, spec.name_3, spec.name_4]
+    scores = [[0 for _ in range(spec.tablesize)] for _ in range(spec.tablesize)]
+    for i in range(spec.tablesize):
+        for j in range(spec.tablesize):
+            if i == j:
+                scores[i][j] = 0
+            else:
+                x = ResultPlayChemSpecTable.objects.get(spec=spec, row=i, column=j)
+                scores[i][j] = x.interaction
+
+    prompt = f"""
+        당신은 카카오톡 대화 파일을 분석하여 대화참여자들 사이의 케미를 평가하는 전문가입니다.
+        주어진 채팅 대화 내용과 케미 분석 결과를 바탕으로 두 사람에 대한 케미 퀴즈 10개를 생성해주세요.
+        썸 퀴즈는 4지선다형으로, 정답은 1개입니다.
+
+        주어진 채팅 대화 내용: 
+        {chat_content}
+
+        케미 분석 결과: 
+        본 대화에는 총 {result.people_num}명의 참여자가 있으며, 톡방 제목은 '{chat.title}'입니다.
+        참가자들은 {result.relationship} 관계이며, 상황은 {result.situation}입니다.
+
+        케미 분석 세부 결과:
+        종합케미점수는 {spec.score_main}점, 그에 대한 요약은 {spec.summary_main}입니다.
+        총 {result.people_num}명의 참여자 중 상위 {spec.tablesize}명에 대한 분석이 중심이 됩니다.
+        상위 {spec.tablesize}명의 이름은 순서대로 {[name for name in names[:spec.tablesize]]}입니다.
+        상위 {spec.tablesize}명의 서로에 대한 케미 점수는 다음과 같습니다.
+        {spec.name_0} --> {spec.name_1} 케미 점수: {scores[0][1]}
+        {spec.name_0} --> {spec.name_2} 케미 점수: {scores[0][2]}
+        {spec.name_0} --> {spec.name_3} 케미 점수: {scores[0][3]}
+        {spec.name_0} --> {spec.name_4} 케미 점수: {scores[0][4]}
+        {spec.name_1} --> {spec.name_0} 케미 점수: {scores[1][0]}
+        {spec.name_1} --> {spec.name_2} 케미 점수: {scores[1][2]}
+        {spec.name_1} --> {spec.name_3} 케미 점수: {scores[1][3]}
+        {spec.name_1} --> {spec.name_4} 케미 점수: {scores[1][4]}
+        {spec.name_2} --> {spec.name_0} 케미 점수: {scores[2][0]}
+        {spec.name_2} --> {spec.name_1} 케미 점수: {scores[2][1]}
+        {spec.name_2} --> {spec.name_3} 케미 점수: {scores[2][3]}
+        {spec.name_2} --> {spec.name_4} 케미 점수: {scores[2][4]}
+        {spec.name_3} --> {spec.name_0} 케미 점수: {scores[3][0]}
+        {spec.name_3} --> {spec.name_1} 케미 점수: {scores[3][1]}
+        {spec.name_3} --> {spec.name_2} 케미 점수: {scores[3][2]}
+        {spec.name_3} --> {spec.name_4} 케미 점수: {scores[3][4]}
+        {spec.name_4} --> {spec.name_0} 케미 점수: {scores[4][0]}
+        {spec.name_4} --> {spec.name_1} 케미 점수: {scores[4][1]}
+        {spec.name_4} --> {spec.name_2} 케미 점수: {scores[4][2]}
+        {spec.name_4} --> {spec.name_3} 케미 점수: {scores[4][3]}
+        해당 케미점수 결과에서 케미 점수가 0점이거나 이름이 비어있는 경우는 무시해주세요.
+
+        케미 순위 1위는 {spec.top1_A}와 {spec.top1_B}이며, 이들의 케미 점수는 {spec.top1_score}점입니다.
+        케미 순위 1위에 대한 간단한 설명은 {spec.top1_comment}입니다.
+        케미 순위 2위는 {spec.top2_A}와 {spec.top2_B}이며, 이들의 케미 점수는 {spec.top2_score}점입니다.
+        케미 순위 2위에 대한 간단한 설명은 {spec.top2_comment}입니다.
+        케미 순위 3위는 {spec.top3_A}와 {spec.top3_B}이며, 이들의 케미 점수는 {spec.top3_score}점입니다.
+        케미 순위 3위에 대한 간단한 설명은 {spec.top3_comment}입니다.
+
+        대화 톤의 비율은, 긍정적인 표현이 {spec.tone_pos}%, 농담/유머가 {spec.tone_humer}%, 기타가 {100-spec.tone_pos-spec.tone_humer}%입니다.
+        예시대화로는 {spec.tone_ex}가 있습니다.
+
+        응답 패턴으로는, 우선 평균 {spec.resp_time}분의 응답 시간을 보였으며, 즉각 응답 비율은 {spec.resp_ratio}%,
+        읽씹 발생률은 {spec.ignore}%입니다. 그에 대한 분석은 {spec.resp_analysis}입니다.
+
+        대화 주세의 비율은, {spec.topic1}가 {spec.topic1_ratio}%, {spec.topic2}가 {spec.topic2_ratio}%,
+        {spec.topic3}가 {spec.topic3_ratio}%, {spec.topic4}가 {spec.topic4_ratio}%입니다.
+        
+        종합적인 사람들 간의 분석 결과는 {spec.chatto_analysis}입니다.
+        케미를 더 올리기 위한 분석과 팁은 {spec.chatto_levelup}, {spec.chatto_levelup_tips}입니다.
+
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 10개를 생성해야 합니다:
+        당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
+
+        문제1: [문제 내용]
+        선택지1-1: [선택지 1 내용]
+        선택지1-2: [선택지 2 내용]
+        선택지1-3: [선택지 3 내용]
+        선택지1-4: [선택지 4 내용]
+        정답1: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제2: [문제 내용]
+        선택지2-1: [선택지 1 내용]
+        선택지2-2: [선택지 2 내용]
+        선택지2-3: [선택지 3 내용]
+        선택지2-4: [선택지 4 내용]
+        정답2: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제3: [문제 내용]
+        선택지3-1: [선택지 1 내용]  
+        선택지3-2: [선택지 2 내용]
+        선택지3-3: [선택지 3 내용]
+        선택지3-4: [선택지 4 내용]
+        정답3: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제4: [문제 내용]
+        선택지4-1: [선택지 1 내용]
+        선택지4-2: [선택지 2 내용]
+        선택지4-3: [선택지 3 내용]
+        선택지4-4: [선택지 4 내용]
+        정답4: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제5: [문제 내용]
+        선택지5-1: [선택지 1 내용]
+        선택지5-2: [선택지 2 내용]
+        선택지5-3: [선택지 3 내용]
+        선택지5-4: [선택지 4 내용]
+        정답5: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제6: [문제 내용]
+        선택지6-1: [선택지 1 내용]
+        선택지6-2: [선택지 2 내용]
+        선택지6-3: [선택지 3 내용]
+        선택지6-4: [선택지 4 내용]
+        정답6: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제7: [문제 내용]
+        선택지7-1: [선택지 1 내용]
+        선택지7-2: [선택지 2 내용]
+        선택지7-3: [선택지 3 내용]
+        선택지7-4: [선택지 4 내용]
+        정답7: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제8: [문제 내용]
+        선택지8-1: [선택지 1 내용]
+        선택지8-2: [선택지 2 내용]
+        선택지8-3: [선택지 3 내용]
+        선택지8-4: [선택지 4 내용]
+        정답8: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제9: [문제 내용]
+        선택지9-1: [선택지 1 내용]
+        선택지9-2: [선택지 2 내용]
+        선택지9-3: [선택지 3 내용]
+        선택지9-4: [선택지 4 내용]
+        정답9: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제10: [문제 내용]
+        선택지10-1: [선택지 1 내용]
+        선택지10-2: [선택지 2 내용]
+        선택지10-3: [선택지 3 내용]
+        선택지10-4: [선택지 4 내용]
+        정답10: [정답 선택지 번호 (1, 2, 3, 4)]
+        """
+    
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=[prompt]
+    )
+
+    response_text = response.text
+    
+    print(f"Gemini로 생성된 케미 퀴즈 응답: {response_text}")
+
+    return {
+        "question1": parse_response(r"문제1:\s*(.+)", response_text),
+        "choice1-1": parse_response(r"선택지1-1:\s*(.+)", response_text),
+        "choice1-2": parse_response(r"선택지1-2:\s*(.+)", response_text),
+        "choice1-3": parse_response(r"선택지1-3:\s*(.+)", response_text),
+        "choice1-4": parse_response(r"선택지1-4:\s*(.+)", response_text),
+        "answer1": parse_response(r"정답1:\s*(\d+)", response_text, is_int=True),
+        "question2": parse_response(r"문제2:\s*(.+)", response_text),
+        "choice2-1": parse_response(r"선택지2-1:\s*(.+)", response_text),
+        "choice2-2": parse_response(r"선택지2-2:\s*(.+)", response_text),
+        "choice2-3": parse_response(r"선택지2-3:\s*(.+)", response_text),
+        "choice2-4": parse_response(r"선택지2-4:\s*(.+)", response_text),
+        "answer2": parse_response(r"정답2:\s*(\d+)", response_text, is_int=True),
+        "question3": parse_response(r"문제3:\s*(.+)", response_text),
+        "choice3-1": parse_response(r"선택지3-1:\s*(.+)", response_text),
+        "choice3-2": parse_response(r"선택지3-2:\s*(.+)", response_text),
+        "choice3-3": parse_response(r"선택지3-3:\s*(.+)", response_text),
+        "choice3-4": parse_response(r"선택지3-4:\s*(.+)", response_text),
+        "answer3": parse_response(r"정답3:\s*(\d+)", response_text, is_int=True),
+        "question4": parse_response(r"문제4:\s*(.+)", response_text),
+        "choice4-1": parse_response(r"선택지4-1:\s*(.+)", response_text),
+        "choice4-2": parse_response(r"선택지4-2:\s*(.+)", response_text),
+        "choice4-3": parse_response(r"선택지4-3:\s*(.+)", response_text),
+        "choice4-4": parse_response(r"선택지4-4:\s*(.+)", response_text),
+        "answer4": parse_response(r"정답4:\s*(\d+)", response_text, is_int=True),
+        "question5": parse_response(r"문제5:\s*(.+)", response_text),
+        "choice5-1": parse_response(r"선택지5-1:\s*(.+)", response_text),
+        "choice5-2": parse_response(r"선택지5-2:\s*(.+)", response_text),
+        "choice5-3": parse_response(r"선택지5-3:\s*(.+)", response_text),
+        "choice5-4": parse_response(r"선택지5-4:\s*(.+)", response_text),
+        "answer5": parse_response(r"정답5:\s*(\d+)", response_text, is_int=True),
+        "question6": parse_response(r"문제6:\s*(.+)", response_text),
+        "choice6-1": parse_response(r"선택지6-1:\s*(.+)", response_text),
+        "choice6-2": parse_response(r"선택지6-2:\s*(.+)", response_text),
+        "choice6-3": parse_response(r"선택지6-3:\s*(.+)", response_text),
+        "choice6-4": parse_response(r"선택지6-4:\s*(.+)", response_text),
+        "answer6": parse_response(r"정답6:\s*(\d+)", response_text, is_int=True),
+        "question7": parse_response(r"문제7:\s*(.+)", response_text),
+        "choice7-1": parse_response(r"선택지7-1:\s*(.+)", response_text),
+        "choice7-2": parse_response(r"선택지7-2:\s*(.+)", response_text),
+        "choice7-3": parse_response(r"선택지7-3:\s*(.+)", response_text),
+        "choice7-4": parse_response(r"선택지7-4:\s*(.+)", response_text),
+        "answer7": parse_response(r"정답7:\s*(\d+)", response_text, is_int=True),
+        "question8": parse_response(r"문제8:\s*(.+)", response_text),
+        "choice8-1": parse_response(r"선택지8-1:\s*(.+)", response_text),
+        "choice8-2": parse_response(r"선택지8-2:\s*(.+)", response_text),
+        "choice8-3": parse_response(r"선택지8-3:\s*(.+)", response_text),
+        "choice8-4": parse_response(r"선택지8-4:\s*(.+)", response_text),
+        "answer8": parse_response(r"정답8:\s*(\d+)", response_text, is_int=True),
+        "question9": parse_response(r"문제9:\s*(.+)", response_text),
+        "choice9-1": parse_response(r"선택지9-1:\s*(.+)", response_text),
+        "choice9-2": parse_response(r"선택지9-2:\s*(.+)", response_text),
+        "choice9-3": parse_response(r"선택지9-3:\s*(.+)", response_text),
+        "choice9-4": parse_response(r"선택지9-4:\s*(.+)", response_text),
+        "answer9": parse_response(r"정답9:\s*(\d+)", response_text, is_int=True),
+        "question10": parse_response(r"문제10:\s*(.+)", response_text),
+        "choice10-1": parse_response(r"선택지10-1:\s*(.+)", response_text),
+        "choice10-2": parse_response(r"선택지10-2:\s*(.+)", response_text),
+        "choice10-3": parse_response(r"선택지10-3:\s*(.+)", response_text),
+        "choice10-4": parse_response(r"선택지10-4:\s*(.+)", response_text),
+        "answer10": parse_response(r"정답10:\s*(\d+)", response_text, is_int=True),
+    }
+
 # 케미 퀴즈 생성, 케미 퀴즈 조회, 케미 퀴즈 삭제
 class PlayChemQuizView(APIView):
     @swagger_auto_schema(
@@ -1128,17 +1355,16 @@ class PlayChemQuizView(APIView):
         
         if result.chat.user != author:
             return Response(status=status.HTTP_403_FORBIDDEN)
-        
-        # spec과 spec_tables을 가져온 이유: 이거 보고 퀴즈 생성! (물론 chat의 내용도 보고)
-        spec = ResultPlayChemSpec.objects.get(result=result)
-        spec_tables = ResultPlayChemSpecTable.objects.filter(spec=spec)
 
         if ChemQuiz.objects.filter(result=result).exists():
             return Response({"detail": "이미 해당 분석 결과에 대한 퀴즈가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # 케미 퀴즈 생성
+        quiz_data = generate_ChemQuiz(result, client)
+
         quiz = ChemQuiz.objects.create(
             result=result,
-            question_num=3,
+            question_num=10,
             solved_num=0,
             avg_score=0,
         )
@@ -1147,12 +1373,12 @@ class PlayChemQuizView(APIView):
             ChemQuizQuestion.objects.create(
                 quiz=quiz,
                 question_index=i,
-                question=f"{i}번째 질문 내용",
-                choice1="선택지 1",
-                choice2="선택지 2",
-                choice3="선택지 3",
-                choice4="선택지 4",
-                answer=1,
+                question=quiz_data[f"question{i+1}"],
+                choice1=quiz_data[f"choice{i+1}-1"],
+                choice2=quiz_data[f"choice{i+1}-2"],
+                choice3=quiz_data[f"choice{i+1}-3"],
+                choice4=quiz_data[f"choice{i+1}-4"],
+                answer=quiz_data[f"answer{i+1}"],
                 correct_num=0,
                 count1=0,
                 count2=0,
@@ -1381,7 +1607,7 @@ class PlayChemQuizPersonalView(APIView):
             ),
         ],
         responses={
-            200: ChemQuizPersonalSerializerPlay,
+            200: ChemQuizPersonalDetailSerializerPlay,
             400: "Bad Request",
             401: "Unauthorized",
             404: "Not Found"
@@ -1633,6 +1859,206 @@ class PlayChemQuizModifyView(APIView):
 ###################################################################
 
 
+def generate_SomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
+    
+    # 퀴즈 생성에 참고할 자료들 가져오기
+    chat = result.chat
+    if not chat.file:
+        return Response({"detail": "채팅 파일이 존재하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        spec = ResultPlaySomeSpec.objects.get(result=result)
+    except:
+        return Response({"detail": "해당 분석 결과의 스펙이 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+    
+    # 채팅 파일 열기
+    file_path = chat.file.path
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            chat_content = f.read()  # 파일 전체 내용 읽기
+    except FileNotFoundError:
+        return Response({"detail": "채팅 파일을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+    prompt = f"""
+        당신은 카카오톡 대화 파일을 분석하여 두 사람 사이의 썸 기류를 평가하는 전문가입니다.
+        주어진 채팅 대화 내용과 썸 분석 결과를 바탕으로 두 사람에 대한 썸 퀴즈 1개를 생성해주세요.
+        썸 퀴즈는 4지선다형으로, 정답은 1개입니다.
+
+        주어진 채팅 대화 내용: 
+        {chat_content}
+
+        썸 분석 결과: 
+        두 사람 {spec.name_A}와 {spec.name_B} 사이의 대화입니다. 
+        대화 참여자는 {result.age} 정도의 나이를 가지고 있고, {result.relationship}의 관계를 가지고 있습니다.
+
+        썸 분석 자세한 결과: 
+        해당 대화의 썸 지수는 {spec.score_main}입니다.
+        대화를 분석한 결과, {spec.comment_main}의 조언이 제안되었습니다.
+        {spec.name_A}에서 {spec.name_B}에게 향하는 호감점수는 {spec.score_A}이며, {spec.trait_A}의 특징을 가집니다.
+        {spec.name_B}에서 {spec.name_A}에게 향하는 호감점수는 {spec.score_B}이며, {spec.trait_B}의 특징을 가집니다.
+        
+        요약하자면, {spec.summary}
+
+        말투와 감정을 분석한 결과, 
+        어색한 정도는 {spec.tone}점이고, {spec.tone_desc}의 특징을 보입니다. 예를 들자면, {spec.tone_ex}가 있습니다.
+        감정표현의 정도는 {spec.emo}점이고, {spec.emo_desc}의 특징을 보입니다. 예를 들자면, {spec.emo_ex}가 있습니다.
+        서로에 대한 호칭이 부드러운 정도는 {spec.addr}점이고, {spec.addr_desc}의 특징을 보입니다. 예를 들자면, {spec.addr_ex}가 있습니다.
+
+        대화 패턴을 분석한 결과, {spec.pattern_analysis}의 특징을 보입니다.
+        더 자세히 설명하자면,
+        평균 답장 시간은 {spec.name_A}와 {spec.name_B}가 각각 {spec.reply_A}초, {spec.reply_B}초입니다.
+        평균 답장 시간에 대한 간략한 설명은 각각 {spec.reply_A_desc}와 {spec.reply_B_desc}입니다.
+        약속제안횟수는 {spec.name_A}가 {spec.rec_A}회, {spec.name_B}가 {spec.rec_B}회입니다.
+        약속제안횟수에 대한 간략한 설명은 각각 {spec.rec_A_desc}와 {spec.rec_B_desc}입니다.
+        약속제안횟수에 대한 예시는 각각 {spec.rec_A_ex}와 {spec.rec_B_ex}입니다.
+        주제시작비율은 {spec.name_A}가 {spec.atti_A}%, {spec.name_B}가 {spec.atti_B}%입니다.
+        주제시작비율에 대한 간략한 설명은 각각 {spec.atti_A_desc}와 {spec.atti_B_desc}입니다.
+        주제시작비율에 대한 예시는 각각 {spec.atti_A_ex}와 {spec.atti_B_ex}입니다.
+        평균 메시지 길이는 {spec.name_A}가 {spec.len_A}자, {spec.name_B}가 {spec.len_B}자입니다.
+        평균 메시지 길이에 대한 간략한 설명은 각각 {spec.len_A_desc}와 {spec.len_B_desc}입니다.
+        평균 메시지 길이에 대한 예시는 각각 {spec.len_A_ex}와 {spec.len_B_ex}입니다.
+        
+        종합적인 연애상담결과는 다음과 같습니다:
+        {spec.chatto_counsel}
+        {spec.chatto_counsel_tips}
+
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 생성해야 합니다:
+
+        당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
+
+        문제1: [문제 내용]
+        선택지1-1: [선택지 1 내용]
+        선택지1-2: [선택지 2 내용]
+        선택지1-3: [선택지 3 내용]
+        선택지1-4: [선택지 4 내용]
+        정답1: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제2: [문제 내용]
+        선택지2-1: [선택지 1 내용]
+        선택지2-2: [선택지 2 내용]
+        선택지2-3: [선택지 3 내용]
+        선택지2-4: [선택지 4 내용]
+        정답2: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제3: [문제 내용]
+        선택지3-1: [선택지 1 내용]  
+        선택지3-2: [선택지 2 내용]
+        선택지3-3: [선택지 3 내용]
+        선택지3-4: [선택지 4 내용]
+        정답3: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제4: [문제 내용]
+        선택지4-1: [선택지 1 내용]
+        선택지4-2: [선택지 2 내용]
+        선택지4-3: [선택지 3 내용]
+        선택지4-4: [선택지 4 내용]
+        정답4: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제5: [문제 내용]
+        선택지5-1: [선택지 1 내용]
+        선택지5-2: [선택지 2 내용]
+        선택지5-3: [선택지 3 내용]
+        선택지5-4: [선택지 4 내용]
+        정답5: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제6: [문제 내용]
+        선택지6-1: [선택지 1 내용]
+        선택지6-2: [선택지 2 내용]
+        선택지6-3: [선택지 3 내용]
+        선택지6-4: [선택지 4 내용]
+        정답6: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제7: [문제 내용]
+        선택지7-1: [선택지 1 내용]
+        선택지7-2: [선택지 2 내용]
+        선택지7-3: [선택지 3 내용]
+        선택지7-4: [선택지 4 내용]
+        정답7: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제8: [문제 내용]
+        선택지8-1: [선택지 1 내용]
+        선택지8-2: [선택지 2 내용]
+        선택지8-3: [선택지 3 내용]
+        선택지8-4: [선택지 4 내용]
+        정답8: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제9: [문제 내용]
+        선택지9-1: [선택지 1 내용]
+        선택지9-2: [선택지 2 내용]
+        선택지9-3: [선택지 3 내용]
+        선택지9-4: [선택지 4 내용]
+        정답9: [정답 선택지 번호 (1, 2, 3, 4)]
+        문제10: [문제 내용]
+        선택지10-1: [선택지 1 내용]
+        선택지10-2: [선택지 2 내용]
+        선택지10-3: [선택지 3 내용]
+        선택지10-4: [선택지 4 내용]
+        정답10: [정답 선택지 번호 (1, 2, 3, 4)]
+        """
+    
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=[prompt]
+    )
+
+    response_text = response.text
+    
+    print(f"Gemini로 생성된 썸 퀴즈 응답: {response_text}")
+
+    return {
+        "question1": parse_response(r"문제1:\s*(.+)", response_text),
+        "choice1-1": parse_response(r"선택지1-1:\s*(.+)", response_text),
+        "choice1-2": parse_response(r"선택지1-2:\s*(.+)", response_text),
+        "choice1-3": parse_response(r"선택지1-3:\s*(.+)", response_text),
+        "choice1-4": parse_response(r"선택지1-4:\s*(.+)", response_text),
+        "answer1": parse_response(r"정답1:\s*(\d+)", response_text, is_int=True),
+        "question2": parse_response(r"문제2:\s*(.+)", response_text),
+        "choice2-1": parse_response(r"선택지2-1:\s*(.+)", response_text),
+        "choice2-2": parse_response(r"선택지2-2:\s*(.+)", response_text),
+        "choice2-3": parse_response(r"선택지2-3:\s*(.+)", response_text),
+        "choice2-4": parse_response(r"선택지2-4:\s*(.+)", response_text),
+        "answer2": parse_response(r"정답2:\s*(\d+)", response_text, is_int=True),
+        "question3": parse_response(r"문제3:\s*(.+)", response_text),
+        "choice3-1": parse_response(r"선택지3-1:\s*(.+)", response_text),
+        "choice3-2": parse_response(r"선택지3-2:\s*(.+)", response_text),
+        "choice3-3": parse_response(r"선택지3-3:\s*(.+)", response_text),
+        "choice3-4": parse_response(r"선택지3-4:\s*(.+)", response_text),
+        "answer3": parse_response(r"정답3:\s*(\d+)", response_text, is_int=True),
+        "question4": parse_response(r"문제4:\s*(.+)", response_text),
+        "choice4-1": parse_response(r"선택지4-1:\s*(.+)", response_text),
+        "choice4-2": parse_response(r"선택지4-2:\s*(.+)", response_text),
+        "choice4-3": parse_response(r"선택지4-3:\s*(.+)", response_text),
+        "choice4-4": parse_response(r"선택지4-4:\s*(.+)", response_text),
+        "answer4": parse_response(r"정답4:\s*(\d+)", response_text, is_int=True),
+        "question5": parse_response(r"문제5:\s*(.+)", response_text),
+        "choice5-1": parse_response(r"선택지5-1:\s*(.+)", response_text),
+        "choice5-2": parse_response(r"선택지5-2:\s*(.+)", response_text),
+        "choice5-3": parse_response(r"선택지5-3:\s*(.+)", response_text),
+        "choice5-4": parse_response(r"선택지5-4:\s*(.+)", response_text),
+        "answer5": parse_response(r"정답5:\s*(\d+)", response_text, is_int=True),
+        "question6": parse_response(r"문제6:\s*(.+)", response_text),
+        "choice6-1": parse_response(r"선택지6-1:\s*(.+)", response_text),
+        "choice6-2": parse_response(r"선택지6-2:\s*(.+)", response_text),
+        "choice6-3": parse_response(r"선택지6-3:\s*(.+)", response_text),
+        "choice6-4": parse_response(r"선택지6-4:\s*(.+)", response_text),
+        "answer6": parse_response(r"정답6:\s*(\d+)", response_text, is_int=True),
+        "question7": parse_response(r"문제7:\s*(.+)", response_text),
+        "choice7-1": parse_response(r"선택지7-1:\s*(.+)", response_text),
+        "choice7-2": parse_response(r"선택지7-2:\s*(.+)", response_text),
+        "choice7-3": parse_response(r"선택지7-3:\s*(.+)", response_text),
+        "choice7-4": parse_response(r"선택지7-4:\s*(.+)", response_text),
+        "answer7": parse_response(r"정답7:\s*(\d+)", response_text, is_int=True),
+        "question8": parse_response(r"문제8:\s*(.+)", response_text),
+        "choice8-1": parse_response(r"선택지8-1:\s*(.+)", response_text),
+        "choice8-2": parse_response(r"선택지8-2:\s*(.+)", response_text),
+        "choice8-3": parse_response(r"선택지8-3:\s*(.+)", response_text),
+        "choice8-4": parse_response(r"선택지8-4:\s*(.+)", response_text),
+        "answer8": parse_response(r"정답8:\s*(\d+)", response_text, is_int=True),
+        "question9": parse_response(r"문제9:\s*(.+)", response_text),
+        "choice9-1": parse_response(r"선택지9-1:\s*(.+)", response_text),
+        "choice9-2": parse_response(r"선택지9-2:\s*(.+)", response_text),
+        "choice9-3": parse_response(r"선택지9-3:\s*(.+)", response_text),
+        "choice9-4": parse_response(r"선택지9-4:\s*(.+)", response_text),
+        "answer9": parse_response(r"정답9:\s*(\d+)", response_text, is_int=True),
+        "question10": parse_response(r"문제10:\s*(.+)", response_text),
+        "choice10-1": parse_response(r"선택지10-1:\s*(.+)", response_text),
+        "choice10-2": parse_response(r"선택지10-2:\s*(.+)", response_text),
+        "choice10-3": parse_response(r"선택지10-3:\s*(.+)", response_text),
+        "choice10-4": parse_response(r"선택지10-4:\s*(.+)", response_text),
+        "answer10": parse_response(r"정답10:\s*(\d+)", response_text, is_int=True),
+    }
+
 # 썸 퀴즈 생성, 썸 퀴즈 조회, 썸 퀴즈 삭제
 class PlaySomeQuizView(APIView):
     @swagger_auto_schema(
@@ -1666,16 +2092,16 @@ class PlaySomeQuizView(APIView):
         
         if result.chat.user != author:
             return Response(status=status.HTTP_403_FORBIDDEN)
-        
-        # spec과 가져온 이유: 이거 보고 퀴즈 생성! (물론 chat의 내용도 보고)
-        spec = ResultPlaySomeSpec.objects.get(result=result)
 
         if SomeQuiz.objects.filter(result=result).exists():
             return Response({"detail": "이미 해당 분석 결과에 대한 퀴즈가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # 썸 퀴즈 생성
+        quiz_data = generate_SomeQuiz(result, client)
+
         quiz = SomeQuiz.objects.create(
             result=result,
-            question_num=3,
+            question_num=10,
             solved_num=0,
             avg_score=0,
         )
@@ -1684,12 +2110,12 @@ class PlaySomeQuizView(APIView):
             SomeQuizQuestion.objects.create(
                 quiz=quiz,
                 question_index=i,
-                question=f"{i}번째 질문 내용",
-                choice1="선택지 1",
-                choice2="선택지 2",
-                choice3="선택지 3",
-                choice4="선택지 4",
-                answer=1,
+                question=quiz_data[f"question{i+1}"],
+                choice1=quiz_data[f"choice{i+1}-1"],
+                choice2=quiz_data[f"choice{i+1}-2"],
+                choice3=quiz_data[f"choice{i+1}-3"],
+                choice4=quiz_data[f"choice{i+1}-4"],
+                answer=quiz_data[f"answer{i+1}"],
                 correct_num=0,
                 count1=0,
                 count2=0,
@@ -2169,6 +2595,102 @@ class PlaySomeQuizModifyView(APIView):
 
 ###################################################################
 
+
+def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
+    
+    # 퀴즈 생성에 참고할 자료들 가져오기
+    chat = result.chat
+    if not chat.file:
+        return Response({"detail": "채팅 파일이 존재하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        spec = ResultPlayMBTISpec.objects.get(result=result)
+        spec_personals = ResultPlayMBTISpecPersonal.objects.filter(result=result)
+    except :
+        return Response({"detail": "MBTI 분석 결과가 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+    # 채팅 파일 열기
+    file_path = chat.file.path
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            chat_content = f.read()  # 파일 전체 내용 읽기
+    except FileNotFoundError:
+        return Response({"detail": "채팅 파일을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+    
+    total = spec.total_E + spec.total_I
+    names = ["" for _ in range(total)]
+    MBTIs = ["" for _ in range(total)]
+
+    for i in range(total):
+        names[i] = spec_personals[i].name
+        MBTIs[i] = spec_personals[i].MBTI
+
+    personal_results = ["" for _ in range(total)]
+
+    for i in range(total):
+        personal_results[i] = f"""
+            {names[i]}의 MBTI 분석 결과:
+            {names[i]}의 MBTI는 {MBTIs[i]}입니다.
+            {names[i]}의 MBTI에 대한 요약은 다음과 같습니다: {spec_personals[i].summary}
+            {names[i]}의 MBTI에 대한 자세한 설명은 다음과 같습니다: {spec_personals[i].desc}
+            {names[i]}의 단톡 내 포지션은 다음과 같습니다: {spec_personals[i].position}
+            {names[i]}의 단톡 내 성향은 다음과 같습니다: {spec_personals[i].personality}
+            {names[i]}의 대화 특징은 다음과 같습니다: {spec_personals[i].style}
+            {names[i]}의 MBTI 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].MBTI_ex}, {spec_personals[i].MBTI_desc}
+            {names[i]}의 IE 성향 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].momentIE_ex}, {spec_personals[i].momentIE_desc}
+            {names[i]}의 NS 성향 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].momentSN_ex}, {spec_personals[i].momentSN_desc}
+            {names[i]}의 TF 성향 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].momentFT_ex}, {spec_personals[i].momentFT_desc}
+            {names[i]}의 JP 성향 모먼트의 예시와 그에 대한 설명은 다음과 같습니다: {spec_personals[i].momentJP_ex}, {spec_personals[i].momentJP_desc}
+            """
+        
+    prompt = f"""
+        당신은 카카오톡 대화 파일을 분석하여 대화 참여자들의 MBTI를 분석하는 전문가입니다.
+        주어진 채팅 대화 내용과 MBTI 분석 결과를 바탕으로 두 사람에 대한 MBTI 퀴즈 1개를 생성해주세요.
+        MBTI 퀴즈는 4지선다형으로, 정답은 1개입니다.
+
+        주어진 채팅 대화 내용: 
+        {chat_content}
+
+        MBTI 분석 결과: 
+        이 대화의 참여자는 {[name for name in names]}입니다.
+        이들 각각의 MBTI는 순서대로 {[MBTI for MBTI in MBTIs]}입니다.
+
+        MBTI 분석 자세한 결과:
+        이 대화 참여자들 중 {spec.total_E}명은 E(외향) 성향을 가지고 있고, {spec.total_I}명은 I(내향) 성향을 가지고 있습니다.
+        이 대화 참여자들 중 {spec.total_N}명은 N(직관) 성향을 가지고 있고, {spec.total_S}명은 S(감각) 성향을 가지고 있습니다.
+        이 대화 참여자들 중 {spec.total_T}명은 T(사고) 성향을 가지고 있고, {spec.total_F}명은 F(감정) 성향을 가지고 있습니다.
+        이 대화 참여자들 중 {spec.total_J}명은 J(판단) 성향을 가지고 있고, {spec.total_P}명은 P(인식) 성향을 가지고 있습니다.
+
+        개인별 분석 결과:{[r for r in personal_results]}
+        
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 생성해야 합니다:
+
+        당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
+
+        문제: [문제 내용]
+        선택지1: [선택지 1 내용]
+        선택지2: [선택지 2 내용]
+        선택지3: [선택지 3 내용]
+        선택지4: [선택지 4 내용]
+        정답: [정답 선택지 번호 (1, 2, 3, 4)]
+        """
+    
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=[prompt]
+    )
+
+    response_text = response.text
+    
+    print(f"Gemini로 생성된 MBTI 퀴즈 응답: {response_text}")
+
+    return {
+        "question": parse_response(r"문제:\s*(.+)", response_text),
+        "choice1": parse_response(r"선택지1:\s*(.+)", response_text),
+        "choice2": parse_response(r"선택지2:\s*(.+)", response_text),
+        "choice3": parse_response(r"선택지3:\s*(.+)", response_text),
+        "choice4": parse_response(r"선택지4:\s*(.+)", response_text),
+        "answer": parse_response(r"정답:\s*(\d+)", response_text, is_int=True),
+    }
 
 # MBTI 퀴즈 생성, MBTI 퀴즈 조회, MBTI 퀴즈 삭제
 class PlayMBTIQuizView(APIView):

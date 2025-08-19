@@ -1,7 +1,7 @@
 import re
 from google import genai
 # import settings  # 실제 환경에서는 API 키를 포함한 settings 모듈을 임포트해야 합니다.
-from .models import ChatPlay
+from .models import ChatBus
 from django.conf import settings
 
 def extract_chat_title(path: str) -> str:
