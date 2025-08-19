@@ -483,6 +483,33 @@ class BusContribResultDetailView(APIView):
 
 
 
+class BusContribResultDetailGuestView(APIView):
+    @swagger_auto_schema(
+        operation_id="특정 기여 분석 결과 조회 (게스트용)",
+        operation_description="특정 기여 분석 결과를 UUID를 통해 조회합니다.",
+        responses={200: ContribAllSerializerBus, 404: "Not Found"},
+    )
+    def get(self, request, uuid):
+        try:
+            share = UuidContrib.objects.get(uuid=uuid)
+            result = share.result
+            spec = ResultBusContribSpec.objects.get(result=result)
+            spec_personals = ResultBusContribSpecPersonal.objects.filter(spec=spec)
+            spec_periods = ResultBusContribSpecPeriod.objects.filter(spec=spec)
+
+            payload = {
+                "result": result,
+                "spec": spec,
+                "spec_personal": list(spec_personals),
+                "spec_period": list(spec_periods),
+            }
+            serializer = ContribAllSerializerBus(payload)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+
 ###################################################################
 
 
