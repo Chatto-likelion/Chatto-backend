@@ -84,7 +84,7 @@ def filter_chat_by_date(lines: list, analysis_option: dict) -> list:
     end_option = analysis_option.get("end")
 
     start_date = None if start_option == "처음부터" else start_option
-    end_date = None if end_option == "마지막까지" else end_option
+    end_date = None if end_option == "끝까지" else end_option
 
     filtered_lines = []
     current_date = None
