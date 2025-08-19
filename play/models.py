@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+import uuid
 
 # Create your models here.
 class ChatPlay(models.Model):
@@ -281,3 +282,15 @@ class MBTIQuizPersonalDetail(models.Model):
     question = models.ForeignKey(MBTIQuizQuestion, on_delete=models.CASCADE)
     response = models.IntegerField(default=0)
     result = models.BooleanField(default=False)
+
+class UuidChem(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)
+    result = models.ForeignKey(ResultPlayChem, on_delete=models.CASCADE, null=True, blank=True)
+
+class UuidSome(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)
+    result = models.ForeignKey(ResultPlaySome, on_delete=models.CASCADE, null=True, blank=True)
+
+class UuidMBTI(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)
+    result = models.ForeignKey(ResultPlayMBTI, on_delete=models.CASCADE, null=True, blank=True)

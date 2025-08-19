@@ -22,6 +22,9 @@ from .models import(
     MBTIQuizQuestion,
     MBTIQuizPersonal,
     MBTIQuizPersonalDetail,
+    UuidChem,
+    UuidMBTI,
+    UuidSome,
 ) 
 
 class AnalyseResponseSerializerPlay(serializers.Serializer):
@@ -199,3 +202,21 @@ class MBTIQuizPersonalDetailSerializerPlay(ModelSerializer):
     class Meta:
         model = MBTIQuizPersonalDetail
         fields = "__all__"
+
+##################################################################
+
+class ChemUuidSerializerPlay(ModelSerializer):
+    class Meta:
+        model = UuidChem
+        fields = "__all__"
+
+class MBTIUuidSerializerPlay(ModelSerializer):
+    class Meta:
+        model = UuidMBTI
+        fields = "__all__"
+
+class SomeUuidSerializerPlay(ModelSerializer):
+    class Meta:
+        model = UuidSome
+        fields = "__all__"
+    
