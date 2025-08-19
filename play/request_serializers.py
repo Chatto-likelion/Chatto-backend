@@ -92,3 +92,5 @@ class ChatTitleModifyRequestSerializerPlay(serializers.Serializer):
 
 #######################################################################
 
+class UuidRequestSerializerPlay(serializers.Serializer):
+    type = serializers.CharField()

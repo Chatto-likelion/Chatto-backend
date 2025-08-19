@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import uuid
 
 from .request_serializers import (
     ChatUploadRequestSerializerPlay,
@@ -29,6 +30,7 @@ from .request_serializers import (
     MBTIQuizResultViewRequestSerializerPlay,
     MBTIQuizModifyRequestSerializerPlay,
     MBTIQuizSubmitRequestSerializerPlay,
+    UuidRequestSerializerPlay,
 )
 from .serializers import (
     AnalyseResponseSerializerPlay,
@@ -55,6 +57,9 @@ from .serializers import (
     MBTIQuizInfoSerializerPlay,
     MBTIQuizPersonalSerializerPlay,
     MBTIQuizPersonalDetailSerializerPlay,
+    ChemUuidSerializerPlay,
+    MBTIUuidSerializerPlay,
+    SomeUuidSerializerPlay,
 )
 
 from .models import(
@@ -79,6 +84,9 @@ from .models import(
     MBTIQuizQuestion,
     MBTIQuizPersonal,
     MBTIQuizPersonalDetail,
+    UuidChem,
+    UuidSome,
+    UuidMBTI,
 )   
 
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -99,7 +107,7 @@ from .utils import (
 
 from datetime import datetime, date
     
-
+# 채팅 파일 업로드, 채팅 목록 조회
 class PlayChatView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     @swagger_auto_schema(
@@ -184,7 +192,7 @@ class PlayChatView(APIView):
         return Response(chat_data, status=status.HTTP_200_OK)
 
 
-
+# 특정 채팅 삭제, 특정 채팅 제목 수정
 class PlayChatDetailView(APIView):
     @swagger_auto_schema(
         operation_id="특정 채팅 삭제",
@@ -275,7 +283,7 @@ class PlayChatDetailView(APIView):
 ##################################################################
 
 
-
+# 채팅 케미 분석
 class PlayChatChemAnalyzeView(APIView):
     @swagger_auto_schema(
         operation_id="채팅 케미 분석",
@@ -425,7 +433,8 @@ class PlayChatChemAnalyzeView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
-
+      
+# 채팅 썸 분석
 class PlayChatSomeAnalyzeView(APIView):
     @swagger_auto_schema(
         operation_id="채팅 썸 분석",
@@ -550,7 +559,8 @@ class PlayChatSomeAnalyzeView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
-    
+
+# 채팅 MBTI 분석
 class PlayChatMBTIAnalyzeView(APIView):
     @swagger_auto_schema(
         operation_id="채팅 MBTI 분석",
@@ -686,7 +696,7 @@ class PlayChatMBTIAnalyzeView(APIView):
 ##################################################################
 
 
-
+# 특정 케미 분석 결과 조회, 특정 케미 분석 결과 삭제
 class PlayChemResultDetailView(APIView):
     @swagger_auto_schema(
         operation_id="특정 케미 분석 결과 조회",
@@ -750,7 +760,7 @@ class PlayChemResultDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-     
+# 특정 썸 분석 결과 조회, 특정 썸 분석 결과 삭제
 class PlaySomeResultDetailView(APIView):
     @swagger_auto_schema(
         operation_id="특정 썸 분석 결과 조회",
@@ -814,7 +824,7 @@ class PlaySomeResultDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-
+# 특정 MBTI 분석 결과 조회, 특정 MBTI 분석 결과 삭제
 class PlayMBTIResultDetailView(APIView):
     @swagger_auto_schema(
         operation_id="특정 MBTI 분석 결과 조회",
@@ -885,7 +895,7 @@ class PlayMBTIResultDetailView(APIView):
 ###################################################################
 
 
-
+# 모든 분석 결과 조회
 class PlayResultAllView(APIView):
     @swagger_auto_schema(
         operation_id="모든 분석 결과 조회",
@@ -925,6 +935,162 @@ class PlayResultAllView(APIView):
         return Response(results, status=status.HTTP_200_OK)
     
 
+
+###################################################################
+
+
+# 게스트용 특정 케미 분석 결과 조회
+class PlayChemResultDetailViewGuest(APIView):
+    @swagger_auto_schema(
+        operation_id="게스트용 특정 케미 분석 결과 조회",
+        operation_description="게스트(비로그인) 사용자가 공유된 UUID로 특정 케미 분석 결과를 조회합니다.",
+        responses={200: ChemAllSerializerPlay, 404: "Not Found"},
+    )
+    def get(self, request, uuid):
+        try:
+            share = UuidChem.objects.get(uuid=uuid)
+            result = ResultPlayChem.objects.get(result_id=share.result.result_id)       
+            spec = ResultPlayChemSpec.objects.get(result=result)
+            spec_tables = ResultPlayChemSpecTable.objects.filter(spec=spec)
+            payload = {
+                "result": result,
+                "spec": spec,
+                "spec_table": list(spec_tables),
+            }
+            serializer = ChemAllSerializerPlay(payload)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+# 게스트용 특정 썸 분석 결과 조회
+class PlaySomeResultDetailViewGuest(APIView):
+    @swagger_auto_schema(
+        operation_id="게스트용 특정 썸 분석 결과 조회",
+        operation_description="게스트(비로그인) 사용자가 공유된 UUID로 특정 썸 분석 결과를 조회합니다.",
+        responses={200: SomeAllSerializerPlay, 404: "Not Found"},
+    )
+    def get(self, request, uuid):
+        try:
+            share = UuidSome.objects.get(uuid=uuid)
+            result = ResultPlaySome.objects.get(result_id=share.result.result_id)
+            spec = ResultPlaySomeSpec.objects.get(result=result)
+            payload = {
+                "result": result,
+                "spec": spec,
+            }
+            serializer = SomeAllSerializerPlay(payload)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+# 게스트용 특정 MBTI 분석 결과 조회
+class PlayMBTIResultDetailViewGuest(APIView):
+    @swagger_auto_schema(
+        operation_id="게스트용 특정 MBTI 분석 결과 조회",
+        operation_description="게스트(비로그인) 사용자가 공유된 UUID로 특정 MBTI 분석 결과를 조회합니다.",
+        responses={200: MBTIAllSerializerPlay, 404: "Not Found"},
+    )
+    def get(self, request, uuid):
+        try:
+            share = UuidMBTI.objects.get(uuid=uuid)
+            result = ResultPlayMBTI.objects.get(result_id=share.result.result_id)
+            spec = ResultPlayMBTISpec.objects.get(result=result)
+            spec_personals = ResultPlayMBTISpecPersonal.objects.filter(spec=spec)
+            payload = {
+                "result": result,
+                "spec": spec,
+                "spec_personal": list(spec_personals),
+            }
+            serializer = MBTIAllSerializerPlay(payload)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+###################################################################
+
+
+# UUID 생성
+class GenerateUUIDView(APIView):
+    @swagger_auto_schema(
+        operation_id="UUID 생성",
+        operation_description="특정 분석 결과(chem/some/mbti)에 대한 공유용 UUID를 생성합니다.",
+        request_body=UuidRequestSerializerPlay,
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            201: ChemUuidSerializerPlay,
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found",
+        },
+    )
+    def post(self, request, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        new_uuid = str(uuid.uuid4())
+
+        request_serializer = UuidRequestSerializerPlay(data=request.data)
+        if request_serializer.is_valid() is False:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        type = request_serializer.validated_data["type"]
+
+        if type == "chem":
+            try:
+                result = ResultPlayChem.objects.get(result_id=result_id)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            if result.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            share = UuidChem.objects.create(
+                result=result,
+                uuid=new_uuid,
+            )
+            serializer = ChemUuidSerializerPlay(share)
+
+        elif type == "some":
+            try:
+                result = ResultPlaySome.objects.get(result_id=result_id)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            if result.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            share = UuidSome.objects.create(
+                result=result,
+                uuid=new_uuid,
+            )
+            serializer = SomeUuidSerializerPlay(share)
+
+        elif type == "mbti":
+            try:
+                result = ResultPlayMBTI.objects.get(result_id=result_id)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            if result.user != author:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            share = UuidMBTI.objects.create(
+                result=result,
+                uuid=new_uuid,
+            )
+            serializer = SomeUuidSerializerPlay(share)
+
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+                
+                
 
 ###################################################################
 
