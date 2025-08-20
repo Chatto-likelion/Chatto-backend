@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+import uuid
 
 # Create your models here.
 class ChatPlay(models.Model):
@@ -22,6 +23,8 @@ class ResultPlayChem(models.Model):
     analysis_date_start = models.TextField(default="")
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
+    num_chat = models.IntegerField(default=0)
+    is_quized = models.BooleanField(default=False)
     chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
@@ -36,6 +39,8 @@ class ResultPlaySome(models.Model):
     analysis_date_start = models.TextField(default="")
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
+    num_chat = models.IntegerField(default=0)
+    is_quized = models.BooleanField(default=False)
     chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
@@ -48,6 +53,8 @@ class ResultPlayMBTI(models.Model):
     analysis_date_start = models.TextField(default="")
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
+    num_chat = models.IntegerField(default=0)
+    is_quized = models.BooleanField(default=False)
     chat = models.ForeignKey(ChatPlay, on_delete=models.SET_NULL, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
@@ -71,8 +78,12 @@ class ResultPlayChemSpec(models.Model):
     top3_comment = models.TextField(default="")
     tone_pos = models.IntegerField(default=0)
     tone_humer = models.IntegerField(default=0)
+    tone_crit = models.IntegerField(default=0)
     tone_else = models.IntegerField(default=0)
-    tone_ex = models.TextField(default="")
+    tone_ex1 = models.TextField(default="")
+    tone_ex2 = models.TextField(default="")
+    tone_ex3 = models.TextField(default="")
+    tone_analysis = models.TextField(default="")
     resp_time = models.IntegerField(default=0)
     resp_ratio = models.IntegerField(default=0)
     ignore = models.IntegerField(default=0)
@@ -105,6 +116,8 @@ class ResultPlayChemSpecTable(models.Model):
 class ResultPlaySomeSpec(models.Model):
     spec_id = models.AutoField(primary_key=True)
     result = models.ForeignKey(ResultPlaySome, on_delete=models.CASCADE)
+    name_A = models.TextField(default="")
+    name_B = models.TextField(default="")
     score_main = models.IntegerField(default=0)
     comment_main = models.TextField(default="")
     score_A = models.IntegerField(default=0)
@@ -137,6 +150,12 @@ class ResultPlaySomeSpec(models.Model):
     atti_B_desc = models.TextField(default="")
     atti_A_ex = models.TextField(default="")
     atti_B_ex = models.TextField(default="")
+    len_A = models.IntegerField(default=0)
+    len_B = models.IntegerField(default=0)
+    len_A_desc = models.TextField(default="")
+    len_B_desc = models.TextField(default="")
+    len_A_ex = models.TextField(default="")
+    len_B_ex = models.TextField(default="")
     pattern_analysis = models.TextField(default="")
     chatto_counsel = models.TextField(default="")
     chatto_counsel_tips = models.TextField(default="")
@@ -281,3 +300,15 @@ class MBTIQuizPersonalDetail(models.Model):
     question = models.ForeignKey(MBTIQuizQuestion, on_delete=models.CASCADE)
     response = models.IntegerField(default=0)
     result = models.BooleanField(default=False)
+
+class UuidChem(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)
+    result = models.ForeignKey(ResultPlayChem, on_delete=models.CASCADE, null=True, blank=True)
+
+class UuidSome(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)
+    result = models.ForeignKey(ResultPlaySome, on_delete=models.CASCADE, null=True, blank=True)
+
+class UuidMBTI(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)
+    result = models.ForeignKey(ResultPlayMBTI, on_delete=models.CASCADE, null=True, blank=True)

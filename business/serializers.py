@@ -6,6 +6,7 @@ from .models import (
     ResultBusContribSpec,
     ResultBusContribSpecPersonal,
     ResultBusContribSpecPeriod,
+    UuidContrib,
 )
 
 class AnalyseResponseSerializerBus(serializers.Serializer):
@@ -41,3 +42,10 @@ class ContribAllSerializerBus(serializers.Serializer):
     spec = ContribSpecSerializerBus()
     spec_personal = ContribSpecPersonalSerializerBus(many=True)
     spec_period = ContribSpecPeriodSerializerBus(many=True)
+
+####################################################################
+
+class ContribUuidSerializerBus(ModelSerializer):
+    class Meta:
+        model = UuidContrib
+        fields = "__all__"
