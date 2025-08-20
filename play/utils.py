@@ -623,7 +623,7 @@ def chem_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         1.  **핵심 분석**: 그룹 전체의 케미를 100점 만점으로 평가하고, 2-3문장으로 요약해주세요.
         2.  **참여자 식별**: 대화에서 가장 활동적인 참여자 {size}명의 이름을 찾아주세요.
         3.  **최고의 케미 조합 Top 3**: 가장 케미가 좋은 두 사람의 조합(Dyad) 3개를 찾아, 각 조합의 이름, 케미 점수, 긍정적인 이유를 한 문장으로 설명해주세요.
-        4.  **대화 스타일**: 그룹의 전체적인 말투를 '긍정적/다정함', '유머러스함', '기타(중립, 비판 등)' 세 가지로 나누어 비율(%)을 추정하고, 가장 특징적인 대화 예시를 하나 들어주세요.
+        4.  **대화 스타일**: 그룹의 전체적인 말투를 '긍정적/다정함', '유머러스함', '기타(중립, 비판 등)' 세 가지로 나누어 비율(%)을 추정하고, 가장 특징적인 대화 예시를 말한 사람을 포함시켜서 3개 들어주세요. 또한 말투 분석을 1-2문장으로 요약해주세요.
         5.  **응답 패턴**: 그룹의 평균 답장 시간(분), 즉각 응답률(%), 그리고 답을 받지 못하고 묻힌 메시지 비율(%)을 추정하고, 응답 패턴에 대한 종합 분석을 1-2문장으로 요약해주세요.
         6.  **주요 토픽**: 대화에서 가장 많이 언급된 상위 4개 토픽과 각 토픽의 비율(%)을 분석해주세요.
         7.  **상호작용 매트릭스**: 위에서 식별한 {size}명의 참여자 간 상호작용 점수(0~100)를 계산해주세요. A가 B에게 보낸 메시지의 긍정성, 응답률 등을 종합하여 점수를 매깁니다.
@@ -658,7 +658,10 @@ def chem_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         유머 말투 비율(%): [숫자]
         비판 말투 비율(%): [숫자]
         기타 말투 비율(%): [숫자]
-        말투 대표 예시: [실제 대화 예시]
+        말투 대표 예시1: [실제 대화 예시] (말한 사람)
+        말투 대표 예시2: [실제 대화 예시] (말한 사람)
+        말투 대표 예시3: [실제 대화 예시] (말한 사람)
+        말투 분석: [1-2 문장 요약]
         ###
         평균 답장 시간(분): [숫자]
         응답률(%): [숫자]
@@ -727,7 +730,10 @@ def chem_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
             "tone_humer": parse_response(r"유머 말투 비율\(%\):\s*(\d+)", response_text, is_int=True),
             "tone_crit": parse_response(r"비판 말투 비율\(%\):\s*(\d+)", response_text, is_int=True),
             "tone_else": parse_response(r"기타 말투 비율\(%\):\s*(\d+)", response_text, is_int=True),
-            "tone_ex": parse_response(r"말투 대표 예시:\s*(.+)", response_text),
+            "tone_ex1": parse_response(r"말투 대표 예시1:\s*(.+)", response_text),
+            "tone_ex2": parse_response(r"말투 대표 예시2:\s*(.+)", response_text),
+            "tone_ex3": parse_response(r"말투 대표 예시3:\s*(.+)", response_text),
+            "tone_analysis": parse_response(r"말투 분석:\s*(.+)", response_text),
             "resp_time": parse_response(r"평균 답장 시간\(분\):\s*(\d+)", response_text, is_int=True),
             "resp_ratio": parse_response(r"응답률\(%\):\s*(\d+)", response_text, is_int=True),
             "ignore": parse_response(r"메시지 무시 비율\(%\):\s*(\d+)", response_text, is_int=True),
