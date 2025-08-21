@@ -1,3 +1,4 @@
+from xmlrpc import client
 from django.shortcuts import render
 
 # Create your views here.
@@ -37,6 +38,7 @@ from django.conf import settings
 from .utils import(
     extract_chat_title,
     count_chat_participants_with_gemini,
+    contrib_analysis_with_gemini,
 )
 
 # Create your views here.
@@ -198,9 +200,18 @@ class BusChatContribAnalyzeView(APIView):
 
         project_type=serializer.validated_data["project_type"]
         team_type=serializer.validated_data["team_type"]
-        analysis_date_start=serializer.validated_data["analysis_start"]
-        analysis_date_end=serializer.validated_data["analysis_end"]
+        analysis_start = serializer.validated_data["analysis_start"]
+        analysis_end = serializer.validated_data["analysis_end"]
 
+        analysis_option = {
+            "project_type": project_type,
+            "team_type": team_type,
+            "start": analysis_start,
+            "end": analysis_end,
+        }
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        contrib_results = contrib_analysis_with_gemini(client, chat, analysis_option)
 
         result = ResultBusContrib.objects.create(
             type=1,
@@ -209,96 +220,57 @@ class BusChatContribAnalyzeView(APIView):
             is_saved=1,
             project_type=project_type,
             team_type=team_type,
-            analysis_date_start=analysis_date_start,
-            analysis_date_end=analysis_date_end,
+            analysis_date_start=analysis_start,
+            analysis_date_end=analysis_end,
             chat=chat,
+            num_chat=contrib_results.get("num_chat", 0),
             user=author,
         )
 
         size = 5 if chat.people_num >= 5 else chat.people_num
 
+        # 1. 전체 요약 분석 결과 (Summary Spec) 저장
+        summary_data = contrib_results.get("summary_spec", {})
         spec = ResultBusContribSpec.objects.create(
             result=result,
-            total_talks=0,  
-            leader="",  
-            avg_resp=0,  
-            insights="",  
-            recommendation="",  
-            analysis_size=size,
+            total_talks=summary_data.get("total_talks", 0),
+            leader=summary_data.get("leader", "N/A"),
+            avg_resp=summary_data.get("avg_resp", 0),
+            insights=summary_data.get("insights", ""),
+            recommendation=summary_data.get("recommendation", ""),
+            analysis_size=len(contrib_results.get("personal_specs", [])),
         )
 
-        for i in range(size):
+        # 2. 개인별 상세 분석 결과 (Personal Specs) 저장
+        personal_specs = contrib_results.get("personal_specs", [])
+        for person_data in personal_specs:
             ResultBusContribSpecPersonal.objects.create(
                 spec=spec,
-                name=f"이름{i}",
-                rank=i,
-                participation=0,
-                infoshare=0,
-                probsolve=0,
-                resptime=0,
-                type="",
+                name=person_data.get("name", "N/A"),
+                rank=person_data.get("rank", 0),
+                type=person_data.get("type", ""),
+                participation=person_data.get("participation", 0),
+                infoshare=person_data.get("infoshare", 0),
+                probsolve=person_data.get("probsolve", 0),
+                proposal=person_data.get("proposal", 0),
+                resptime=person_data.get("resptime", 0),
             )
 
+        # 3. 기간별 분석 결과 (Periodic Specs) 저장
+        periodic_specs = contrib_results.get("periodic_specs", [])
+        for period_data in periodic_specs:
             ResultBusContribSpecPeriod.objects.create(
                 spec=spec,
-                name=f"이름{i}",
-                analysis="종합 참여 점수",
-                pediod_1=0,
-                period_2=0,
-                period_3=0,
-                period_4=0,
-                period_5=0,
-                period_6=0,
+                name=period_data.get("name", "N/A"),
+                analysis=period_data.get("analysis", ""), # Gemini가 생성한 요약 문장
+                period_1=period_data.get("period_1", 0),
+                period_2=period_data.get("period_2", 0),
+                period_3=period_data.get("period_3", 0),
+                period_4=period_data.get("period_4", 0),
+                period_5=period_data.get("period_5", 0),
+                period_6=period_data.get("period_6", 0),
             )
-
-            ResultBusContribSpecPeriod.objects.create(
-                spec=spec,
-                name=f"이름{i}",
-                analysis="정보 공유",
-                pediod_1=0,
-                period_2=0,
-                period_3=0,
-                period_4=0,
-                period_5=0,
-                period_6=0,
-            )
-
-            ResultBusContribSpecPeriod.objects.create(
-                spec=spec,
-                name=f"이름{i}",
-                analysis="문제 해결 참여",
-                pediod_1=0,
-                period_2=0,
-                period_3=0,
-                period_4=0,
-                period_5=0,
-                period_6=0,
-            )
-
-            ResultBusContribSpecPeriod.objects.create(
-                spec=spec,
-                name=f"이름{i}",
-                analysis="주도적 제안",
-                pediod_1=0,
-                period_2=0,
-                period_3=0,
-                period_4=0,
-                period_5=0,
-                period_6=0,
-            )
-
-            ResultBusContribSpecPeriod.objects.create(
-                spec=spec,
-                name=f"이름{i}",
-                analysis="응답 속도",
-                pediod_1=0,
-                period_2=0,
-                period_3=0,
-                period_4=0,
-                period_5=0,
-                period_6=0,
-            )
-
+        
         return Response(
             {
                 "result_id": result.result_id,

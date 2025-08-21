@@ -166,6 +166,32 @@ class ResultPlayMBTISpec(models.Model):
     total_J = models.IntegerField(default=0)
     total_P = models.IntegerField(default=0)
 
+    # --- 16가지 MBTI 유형별 인원수 (추가된 부분) ---
+    # 분석가형
+    cnt_INTJ = models.IntegerField(default=0)
+    cnt_INTP = models.IntegerField(default=0)
+    cnt_ENTJ = models.IntegerField(default=0)
+    cnt_ENTP = models.IntegerField(default=0)
+
+    # 외교관형
+    cnt_INFP = models.IntegerField(default=0)
+    cnt_INFJ = models.IntegerField(default=0)
+    cnt_ENFP = models.IntegerField(default=0)
+    cnt_ENFJ = models.IntegerField(default=0)
+
+    # 관리자형
+    cnt_ISTJ = models.IntegerField(default=0)
+    cnt_ISFJ = models.IntegerField(default=0)
+    cnt_ESTJ = models.IntegerField(default=0)
+    cnt_ESFJ = models.IntegerField(default=0)
+
+    # 탐험가형
+    cnt_ISTP = models.IntegerField(default=0)
+    cnt_ISFP = models.IntegerField(default=0)
+    cnt_ESTP = models.IntegerField(default=0)
+    cnt_ESFP = models.IntegerField(default=0)
+
+
 class ResultPlayMBTISpecPersonal(models.Model):
     specpersonal_id = models.AutoField(primary_key=True)
     spec = models.ForeignKey(ResultPlayMBTISpec, on_delete=models.CASCADE)

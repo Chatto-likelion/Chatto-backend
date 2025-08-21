@@ -69,22 +69,25 @@ def parse_response(pattern, text, is_int=False):
     value = match.group(1).strip()
     return int(value) if is_int else value
 
-def filter_chat_by_date(lines: list, analysis_option: dict) -> list:
+def filter_chat_by_date(lines: list, analysis_option: dict) -> tuple[list, int]:
     """
-    채팅 로그(lines)를 사용자가 지정한 기간(analysis_option)으로 필터링합니다.
+    채팅 로그(lines)를 사용자가 지정한 기간(analysis_option)으로 필터링하고,
+    필터링된 라인의 수를 함께 반환합니다.
 
     Args:
         lines (list): 전체 채팅 로그 리스트
         analysis_option (dict): 시작일과 종료일이 담긴 딕셔너리
 
     Returns:
-        list: 필터링된 채팅 로그 리스트
+        tuple: (필터링된 채팅 로그 리스트, 필터링된 라인 수)
     """
     start_option = analysis_option.get("start")
     end_option = analysis_option.get("end")
 
-    start_date = None if start_option == "처음부터" else start_option
-    end_date = None if end_option == "끝까지" else end_option
+    # analysis_option의 날짜 형식이 'YYYY-MM-DD' 문자열이라고 가정합니다.
+    # 만약 datetime.date 객체라면 .strptime() 부분을 제거해야 합니다.
+    start_date = None if start_option == "처음부터" else datetime.strptime(start_option, "%Y-%m-%d").date()
+    end_date = None if end_option == "끝까지" else datetime.strptime(end_option, "%Y-%m-%d").date()
 
     filtered_lines = []
     current_date = None
@@ -105,7 +108,8 @@ def filter_chat_by_date(lines: list, analysis_option: dict) -> list:
         if is_after_start and is_before_end:
             filtered_lines.append(line)
 
-    return filtered_lines
+    # 필터링된 라인 리스트와 그 길이를 튜플로 반환
+    return filtered_lines, len(filtered_lines)
 
 # ------------------------- some AI helper function ------------------------- #
 # --- 분석 단위별 함수 (Analysis-Specific Functions) ---
@@ -347,12 +351,10 @@ def get_final_counseling(client: genai.Client, prompt_base: str, chat_sample: st
 
     [분석 항목]
     1. **종합 상담**: '챗토'의 입장에서, 두 사람의 현재 관계를 긍정적으로 요약하고 응원하는 3~4문장의 따뜻한 상담 메시지와, '썸' 관계 발전을 위한 1~2문장의 실용적인 팁을 작성해주세요.
-    2. **메시지 수**: 전체 분석에 사용된 메시지 수를 작성해주세요.
 
     --- [출력 형식] ---
     챗토의 연애상담: [상담 문장 1, 상담 문장 2, 상담 문장 3]
     챗토의 연애상담 팁: [팁 문장 1, 팁 문장 2]
-    분석에 사용된 메시지 수: [숫자]
     
     --- [카카오톡 대화 내용] ---
     {chat_sample}
@@ -365,7 +367,6 @@ def get_final_counseling(client: genai.Client, prompt_base: str, chat_sample: st
     return {
         "chatto_counsel": parse_response(r"챗토의 연애상담:\s*(.+)", response.text),
         "chatto_counsel_tips": parse_response(r"챗토의 연애상담 팁:\s*(.+)", response.text),
-        "num_chat": parse_response(r"분석에 사용된 메시지 수:\s*(\d+)", response.text, is_int=True),
     }
 
 # --- 메인 함수 (Main Function) ---
@@ -385,13 +386,13 @@ def some_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
     try:
         with open(chat.file.path, "r", encoding="utf-8") as f:
             all_lines = f.readlines()
-        
-        filtered_lines = filter_chat_by_date(all_lines, analysis_option)
-        
+
+        filtered_lines, num_chat = filter_chat_by_date(all_lines, analysis_option)
+
         if not filtered_lines:
              return {"error_message": "선택하신 기간에 해당하는 대화 내용이 없습니다."}
 
-        chat_content_sample = "".join(filtered_lines[:1000])
+        chat_content_sample = "".join(filtered_lines)
 
         age_info = analysis_option.get("age", "알 수 없음")
         relationship_info = analysis_option.get("relationship", "알 수 없음")
@@ -434,6 +435,8 @@ def some_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
                 # 특정 부분에서 에러가 나도 계속 진행하거나, 여기서 중단할 수 있습니다.
                 # 예: return {"error_message": f"'{func.__name__}' 분석 중 오류 발생"}
 
+        final_results["num_chat"] = num_chat
+        
         return final_results
 
     except Exception as e:
@@ -467,9 +470,12 @@ def mbti_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         with open(file_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
             
-            filtered_lines = filter_chat_by_date(lines, analysis_option)
+            filtered_lines, num_chat = filter_chat_by_date(lines, analysis_option)
 
-            chat_content_sample = "".join(filtered_lines[:1000]) 
+            if not filtered_lines:
+                return {"error_message": "유효한 대화 내용이 없습니다."}
+
+            chat_content_sample = "".join(filtered_lines) 
 
         # Gemini에게 보낼 프롬프트입니다.
         # 각 참여자별로 분석을 반복하고, 명확한 구분자(--- PERSON ANALYSIS ---)를 사용하도록 지시합니다.
@@ -489,7 +495,6 @@ def mbti_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         9.  각 MBTI 지표(I/E, S/N, F/T, J/P) 분석: 각 지표에 대해 왜 그렇게 판단했는지 1-2 문장으로 설명하고, 근거가 된 실제 대화 내용을 정확히 인용해주세요.
 
         아래 출력 형식을 반드시 지켜주세요. 참여자별 분석은 '--- PERSON ANALYSIS ---'로 구분해주세요.
-        마지막으로 분석에 사용된 메시지 수를 기재해주세요.
         다른 부가적인 설명은 절대 추가하지 마세요.
 
         --- PERSON ANALYSIS ---
@@ -510,9 +515,6 @@ def mbti_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         momentFT_ex: [실제 대화 예시]
         momentJP_desc: [판단/인식 판단 근거]
         momentJP_ex: [실제 대화 예시]
-
-        마지막으로 분석에 사용된 메시지 수를 기재해주세요.
-        num_chat: [분석에 사용된 메시지 수]
 
         --- CHAT LOG ---
         {chat_content_sample}
@@ -550,7 +552,6 @@ def mbti_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
             momentFT_ex = parse_response(r"momentFT_ex:\s*(.+)", analysis_block)
             momentJP_desc = parse_response(r"momentJP_desc:\s*(.+)", analysis_block)
             momentJP_ex = parse_response(r"momentJP_ex:\s*(.+)", analysis_block)
-            num_chat = parse_response(r"num_chat:\s*(.+)", analysis_block)
 
             if name and mbti:
                 results.append({
@@ -573,10 +574,8 @@ def mbti_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
                     "momentJP_ex": momentJP_ex,
                 })
 
-        results.append({
-            "num_chat": num_chat
-        })
-        return results
+        
+        return results, num_chat
 
     except Exception as e:
         print(f"Gemini로 MBTI 상세 분석 중 에러 발생: {e}")
@@ -592,14 +591,13 @@ def chem_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
     try:
         with open(chat.file.path, "r", encoding="utf-8") as f:
             all_lines = f.readlines()
-        
-        filtered_lines = filter_chat_by_date(all_lines, analysis_option)
-        
+
+        filtered_lines, num_chat = filter_chat_by_date(all_lines, analysis_option)
+
         if not filtered_lines:
             return {"error_message": "선택하신 기간에 해당하는 대화 내용이 없습니다."}
 
-        # 단체 채팅은 더 많은 맥락이 필요하므로 샘플을 1000줄로 늘립니다.
-        chat_content_sample = "".join(filtered_lines[:1000])
+        chat_content_sample = "".join(filtered_lines)
 
         relationship_info = analysis_option.get("relationship", "알 수 없음")
         situation_info = analysis_option.get("situation", "알 수 없음")
@@ -745,6 +743,7 @@ def chem_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
             "chatto_levelup": parse_response(r"챗토의 관계 레벨업:\s*(.+)", response_text),
             "chatto_levelup_tips": parse_response(r"챗토의 관계 레벨업 팁:\s*(.+)", response_text),
             "interaction_matrix": interaction_matrix, # 파싱된 딕셔너리
+            "num_chat": num_chat
         }
         return results
 

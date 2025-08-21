@@ -106,7 +106,6 @@ from .utils import (
     parse_response,
 )
 
-from datetime import datetime, date
     
 # 채팅 파일 업로드, 채팅 목록 조회
 class PlayChatView(APIView):
@@ -318,18 +317,8 @@ class PlayChatChemAnalyzeView(APIView):
 
         relationship = serializer.validated_data["relationship"]
         situation = serializer.validated_data["situation"]
-
-        if serializer.validated_data["analysis_start"] == "처음부터":
-            analysis_start = "처음부터"
-        else:
-            y, m, d = serializer.validated_data["analysis_start"].split("-")
-            analysis_start = date(int(y), int(m), int(d))
-
-        if serializer.validated_data["analysis_end"] == "끝까지":
-            analysis_end = "끝까지"
-        else:
-            y, m, d = serializer.validated_data["analysis_end"].split("-")
-            analysis_end = date(int(y), int(m), int(d))
+        analysis_start = serializer.validated_data["analysis_start"]
+        analysis_end = serializer.validated_data["analysis_end"]
 
         print(analysis_start, analysis_end)
         try:
@@ -481,20 +470,9 @@ class PlayChatSomeAnalyzeView(APIView):
 
         relationship = serializer.validated_data["relationship"]
         age = serializer.validated_data["age"]
+        analysis_start = serializer.validated_data["analysis_start"]
+        analysis_end = serializer.validated_data["analysis_end"]
 
-        if serializer.validated_data["analysis_start"] == "처음부터":
-            analysis_start = "처음부터"
-        else:
-            y, m, d = serializer.validated_data["analysis_start"].split("-")
-            analysis_start = date(int(y), int(m), int(d))
-
-        if serializer.validated_data["analysis_end"] == "끝까지":
-            analysis_end = "끝까지"
-        else:
-            y, m, d = serializer.validated_data["analysis_end"].split("-")
-            analysis_end = date(int(y), int(m), int(d))
-
-        print(analysis_start, analysis_end)
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
             if chat.user != author:
@@ -616,17 +594,8 @@ class PlayChatMBTIAnalyzeView(APIView):
         if serializer.is_valid() is False:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        if serializer.validated_data["analysis_start"] == "처음부터":
-            analysis_start = "처음부터"
-        else:
-            y, m, d = serializer.validated_data["analysis_start"].split("-")
-            analysis_start = date(int(y), int(m), int(d))
-
-        if serializer.validated_data["analysis_end"] == "끝까지":
-            analysis_end = "끝까지"
-        else:
-            y, m, d = serializer.validated_data["analysis_end"].split("-")
-            analysis_end = date(int(y), int(m), int(d))
+        analysis_start = serializer.validated_data["analysis_start"]
+        analysis_end = serializer.validated_data["analysis_end"]
 
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
@@ -642,7 +611,7 @@ class PlayChatMBTIAnalyzeView(APIView):
             "end": analysis_end
         }
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        mbti_results = mbti_analysis_with_gemini(chat, client, analysis_option)
+        mbti_results, num_chat = mbti_analysis_with_gemini(chat, client, analysis_option)
 
         # 2. ResultPlayMBTI 객체 생성
         result = ResultPlayMBTI.objects.create(
@@ -652,7 +621,7 @@ class PlayChatMBTIAnalyzeView(APIView):
             is_saved=1,
             analysis_date_start=analysis_start,
             analysis_date_end=analysis_end,
-            num_chat=mbti_results[-1].get("num_chat", 0),
+            num_chat=num_chat,
             chat=chat,
             user=author,
         )
@@ -673,9 +642,29 @@ class PlayChatMBTIAnalyzeView(APIView):
             total_T=0,
             total_J=0,
             total_P=0,
+            cnt_INTJ=0,
+            cnt_INTP=0,
+            cnt_ENTJ=0,
+            cnt_ENTP=0,
+            cnt_INFJ=0,
+            cnt_INFP=0,
+            cnt_ENFJ=0,
+            cnt_ENFP=0,
+            cnt_ISTJ=0,
+            cnt_ISFJ=0,
+            cnt_ESTJ=0,
+            cnt_ESFJ=0,
+            cnt_ISTP=0,
+            cnt_ISFP=0,
+            cnt_ESTP=0,
+            cnt_ESFP=0
         )
         totals = {
-            'I': 0, 'E': 0, 'S': 0, 'N': 0, 'F': 0, 'T': 0, 'J': 0, 'P': 0
+            'I': 0, 'E': 0, 'S': 0, 'N': 0, 'F': 0, 'T': 0, 'J': 0, 'P': 0,
+            'INTJ': 0, 'INTP': 0, 'ENTJ': 0, 'ENTP': 0,
+            'INFJ': 0, 'INFP': 0, 'ENFJ': 0, 'ENFP': 0, 
+            'ISTJ': 0, 'ISFJ': 0, 'ESTJ': 0, 'ESFJ': 0, 
+            'ISTP': 0, 'ISFP': 0, 'ESTP': 0, 'ESFP': 0
         }
 
         # 각 참여자별 분석 결과를 ResultPlayMBTISpecPersonal에 저장
@@ -705,6 +694,9 @@ class PlayChatMBTIAnalyzeView(APIView):
             for char in mbti:
                 if char in totals:
                     totals[char] += 1
+            # MBTI 유형별 카운트 업데이트
+            if mbti in totals:
+                totals[mbti] += 1
 
         # spec 객체에 전체 카운트 업데이트
         spec.total_I = totals['I']
@@ -715,6 +707,22 @@ class PlayChatMBTIAnalyzeView(APIView):
         spec.total_T = totals['T']
         spec.total_J = totals['J']
         spec.total_P = totals['P']
+        spec.cnt_INTJ = totals['INTJ']
+        spec.cnt_INTP = totals['INTP']
+        spec.cnt_ENTJ = totals['ENTJ']
+        spec.cnt_ENTP = totals['ENTP']
+        spec.cnt_INFJ = totals['INFJ']
+        spec.cnt_INFP = totals['INFP']
+        spec.cnt_ENFJ = totals['ENFJ']
+        spec.cnt_ENFP = totals['ENFP']
+        spec.cnt_ISTJ = totals['ISTJ']
+        spec.cnt_ISFJ = totals['ISFJ']
+        spec.cnt_ESTJ = totals['ESTJ']
+        spec.cnt_ESFJ = totals['ESFJ']
+        spec.cnt_ISTP = totals['ISTP']
+        spec.cnt_ISFP = totals['ISFP']
+        spec.cnt_ESTP = totals['ESTP']
+        spec.cnt_ESFP = totals['ESFP']
         spec.save()
 
         return Response(
