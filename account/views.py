@@ -53,6 +53,8 @@ class SignUpView(APIView):
     def post(self, request):
         user_serializer = SignUpRequestSerializer(data=request.data)
         if user_serializer.is_valid() and request.data.get("password") == request.data.get("password_confirm"):
+            if User.objects.filter(username=request.data.get("username")).exists():
+                return Response({"detail": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
             user = User.objects.create_user(
                 username = request.data.get("username"),
                 email = request.data.get("email"),
