@@ -186,3 +186,16 @@ SWAGGER_SETTINGS = {
         'BearerAuth': []
     }]
 }
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# 이미 STATIC_URL은 있을 거야:
+STATIC_URL = "/static/"
+
+# collectstatic이 모아줄 실제 경로
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# 개발 중이라면 앱 안에서 사용할 static 경로
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
