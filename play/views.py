@@ -2271,7 +2271,7 @@ def generate_OneChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
         케미 순위 3위에 대한 간단한 설명은 {spec.top3_comment}입니다.
 
         대화 톤의 비율은, 긍정적인 표현이 {spec.tone_pos}%, 농담/유머가 {spec.tone_humer}%, 기타가 {100-spec.tone_pos-spec.tone_humer}%입니다.
-        예시대화로는 {spec.tone_ex}가 있습니다.
+        예시대화로는 {spec.tone_ex1}, {spec.tone_ex2}, {spec.tone_ex3}가 있습니다. 이에 대한 설명은 {spec.tone_analysis}입니다.
 
         응답 패턴으로는, 우선 평균 {spec.resp_time}분의 응답 시간을 보였으며, 즉각 응답 비율은 {spec.resp_ratio}%,
         읽씹 발생률은 {spec.ignore}%입니다. 그에 대한 분석은 {spec.resp_analysis}입니다.
