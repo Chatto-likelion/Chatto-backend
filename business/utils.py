@@ -157,8 +157,7 @@ def contrib_analysis_with_gemini(client: genai.Client, chat: ChatBus, analysis_o
 
         2.  **기간별 분석 (Periodic Analysis)**
             -   전체 대화를 시간 순서에 따라 6개의 구간으로 동일하게 나눕니다.
-            -   각 참여자별로 6개 구간에서의 대화 참여도 점수(0~100)를 각각 평가합니다.
-            -   `기간별 분석 요약`: 각 참여자의 기간별 활동 패턴에 대한 1-2 문장의 요약.
+            -   각 참여자별로 6개 구간에서의 점수(0~100)를 (1)종합 참여 점수, (2)정보 공유 점수, (3)문제 해결 참여 점수, (4)주도적 제안 점수, (5)응답 속도 점수에 대해 각각 평가합니다.
 
         3.  **개인별 상세 분석 (Personal Analysis)**
             -   채팅에 참여한 모든 주요 인물을 찾아냅니다.
@@ -183,7 +182,43 @@ def contrib_analysis_with_gemini(client: genai.Client, chat: ChatBus, analysis_o
         [기간별 분석]
         ---
         이름: [참여자 이름]
-        기간별 분석 요약: [1-2 문장 요약]
+        분석 종류: 종합 참여 점수
+        period_1: [숫자]
+        period_2: [숫자]
+        period_3: [숫자]
+        period_4: [숫자]
+        period_5: [숫자]
+        period_6: [숫자]
+        ---
+        이름: [참여자 이름]
+        분석 종류: 정보 공유
+        period_1: [숫자]
+        period_2: [숫자]
+        period_3: [숫자]
+        period_4: [숫자]
+        period_5: [숫자]
+        period_6: [숫자]
+        ---
+        이름: [참여자 이름]
+        분석 종류: 문제 해결 참여
+        period_1: [숫자]
+        period_2: [숫자]
+        period_3: [숫자]
+        period_4: [숫자]
+        period_5: [숫자]
+        period_6: [숫자]
+        ---
+        이름: [참여자 이름]
+        분석 종류: 주도적 제안
+        period_1: [숫자]
+        period_2: [숫자]
+        period_3: [숫자]
+        period_4: [숫자]
+        period_5: [숫자]
+        period_6: [숫자]
+        ---
+        이름: [참여자 이름]
+        분석 종류: 응답 속도
         period_1: [숫자]
         period_2: [숫자]
         period_3: [숫자]
@@ -239,7 +274,7 @@ def contrib_analysis_with_gemini(client: genai.Client, chat: ChatBus, analysis_o
                 if not block.strip(): continue
                 periodic_specs.append({
                     "name": parse_response(r"이름:\s*(.+)", block),
-                    "analysis": parse_response(r"기간별 분석 요약:\s*(.+)", block),
+                    "analysis_type": parse_response(r"분석 종류:\s*(.+)", block),
                     "period_1": parse_response(r"period_1:\s*(\d+)", block, is_int=True),
                     "period_2": parse_response(r"period_2:\s*(\d+)", block, is_int=True),
                     "period_3": parse_response(r"period_3:\s*(\d+)", block, is_int=True),

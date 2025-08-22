@@ -408,7 +408,7 @@ class BusChatContribAnalyzeView(APIView):
             ResultBusContribSpecPeriod.objects.create(
                 spec=spec,
                 name=period_data.get("name", "N/A"),
-                analysis=period_data.get("analysis", ""), # Gemini가 생성한 요약 문장
+                analysis=period_data.get("analysis_type", ""), 
                 period_1=period_data.get("period_1", 0),
                 period_2=period_data.get("period_2", 0),
                 period_3=period_data.get("period_3", 0),
