@@ -254,6 +254,7 @@ class ChemQuizPersonalDetail(models.Model):
     question = models.ForeignKey(ChemQuizQuestion, on_delete=models.CASCADE)
     response = models.IntegerField(default=0)
     result = models.BooleanField(default=False)
+    answer = models.IntegerField(default=0)
 
 class SomeQuiz(models.Model):
     quiz_id = models.AutoField(primary_key=True)
@@ -290,6 +291,7 @@ class SomeQuizPersonalDetail(models.Model):
     question = models.ForeignKey(SomeQuizQuestion, on_delete=models.CASCADE)
     response = models.IntegerField(default=0)
     result = models.BooleanField(default=False)
+    answer = models.IntegerField(default=0)
 
 class MBTIQuiz(models.Model):
     quiz_id = models.AutoField(primary_key=True)
@@ -326,6 +328,7 @@ class MBTIQuizPersonalDetail(models.Model):
     question = models.ForeignKey(MBTIQuizQuestion, on_delete=models.CASCADE)
     response = models.IntegerField(default=0)
     result = models.BooleanField(default=False)
+    answer = models.IntegerField(default=0)
 
 class UuidChem(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)

@@ -1965,6 +1965,7 @@ class PlayChemQuizSubmitView(APIView):
                 question=question,
                 response=response,
                 result=result_correct,
+                answer = question.answer,
             )
 
             i += 1
@@ -2059,6 +2060,7 @@ class PlayChemQuizSubmitGuestView(APIView):
                 question=question,
                 response=response,
                 result=result_correct,
+                answer=question.answer,
             )
 
             i += 1
@@ -3146,6 +3148,7 @@ class PlaySomeQuizSubmitView(APIView):
                 question=question,
                 response=response,
                 result=result_correct,
+                answer=question.answer,
             )
 
             i += 1
@@ -3239,7 +3242,8 @@ class PlaySomeQuizSubmitGuestView(APIView):
                 QP=quiz_personal,
                 question=question,
                 response=response,
-                result=result_correct
+                result=result_correct,
+                answer=question.answer,
             )
 
             i += 1
@@ -4300,6 +4304,7 @@ class PlayMBTIQuizSubmitView(APIView):
                 question=question,
                 response=response,
                 result=result_correct,
+                answer=question.answer,
             )
 
             i += 1
@@ -4393,7 +4398,8 @@ class PlayMBTIQuizSubmitGuestView(APIView):
                 QP=quiz_personal,
                 question=question,
                 response=response,
-                result=result_correct
+                result=result_correct,
+                answer=question.answer,
             )
 
             i += 1
