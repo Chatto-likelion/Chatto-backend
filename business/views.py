@@ -259,6 +259,48 @@ class UuidToTypeView(APIView):
             return Response({"type": None}, status=status.HTTP_404_NOT_FOUND)
                 
 
+# 타입 + 결과 ID --> UUID 변환
+class TypeResultIdToUuidView(APIView):
+    @swagger_auto_schema(
+        operation_id="타입과 결과 ID로 UUID 조회",
+        operation_description="결과 타입과 결과 ID를 통해 UUID를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="UUID 반환 성공",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "uuid": openapi.Schema(type=openapi.TYPE_STRING, description="UUID"),
+                    },
+                ),
+            ),
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found",
+        },
+    )
+    def get(self, request, type, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        if type == "contrib":
+            try:
+                result = ResultBusContrib.objects.get(result_id=result_id)
+                share = UuidContrib.objects.filter(result=result).first()
+                return Response({"uuid": share.uuid}, status=status.HTTP_200_OK)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
 
 ###################################################################
 

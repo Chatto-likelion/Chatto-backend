@@ -1181,6 +1181,68 @@ class UuidToTypeView(APIView):
             return Response({"type": None}, status=status.HTTP_404_NOT_FOUND)
                 
 
+# 타입 + resultid --> UUID 조회
+class TypeResultIdToUuidView(APIView):
+    @swagger_auto_schema(
+        operation_id="타입+resultid로 UUID 조회",
+        operation_description="타입(chem/some/mbti)과 result_id로 해당 결과의 공유용 UUID를 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "Authorization",
+                openapi.IN_HEADER,
+                description="access token",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="UUID 반환 성공",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "uuid": openapi.Schema(type=openapi.TYPE_STRING, description="공유용 UUID"),
+                    },
+                ),
+            ),
+            401: "Unauthorized",
+            404: "Not Found",
+            400: "Bad Request",
+        },
+    )
+    def get(self, request, type, result_id):
+        author = request.user
+        if not author.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        if type == "chem":
+            try:
+                result = ResultPlayChem.objects.get(result_id=result_id)
+                share = UuidChem.objects.filter(result=result).first()
+                return Response({"uuid": share.uuid}, status=status.HTTP_200_OK)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+        elif type == "some":
+            try:
+                result = ResultPlaySome.objects.get(result_id=result_id)
+                share = UuidSome.objects.filter(result=result).first()
+                return Response({"uuid": share.uuid}, status=status.HTTP_200_OK)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+        elif type == "mbti":
+            try:
+                result = ResultPlayMBTI.objects.get(result_id=result_id)
+                share = UuidMBTI.objects.filter(result=result).first()
+                return Response({"uuid": share.uuid}, status=status.HTTP_200_OK)
+            except:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+
 ###################################################################
 
 

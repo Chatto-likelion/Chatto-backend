@@ -7,7 +7,8 @@ from .views import (
     BusContribResultDetailView,
     GenerateUUIDView,
     UuidToTypeView,
-    BusContribResultDetailGuestView,   
+    BusContribResultDetailGuestView, 
+    TypeResultIdToUuidView,  
 )
 app_name = 'business'
 
@@ -21,4 +22,5 @@ urlpatterns = [
     
     path("chat/uuid/<int:result_id>", GenerateUUIDView.as_view()),
     path("chat/uuid/search/<uuid:uuid>/", UuidToTypeView.as_view()),
+    path("chat/result_type/search/<str:type>/<int:result_id>/", TypeResultIdToUuidView.as_view()),
 ]
