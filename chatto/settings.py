@@ -33,7 +33,7 @@ GEMINI_API_KEY = env("GEMINI_API_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", env("EC2_IPV4")]
 
 
 # Application definition
@@ -148,6 +148,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    env("EC2_IPV4"),
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -155,6 +156,7 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    env("EC2_IPV4"),
 ]
 
 REST_USE_JWT = True  # 🔹 Django에서 JWT 사용을 활성화
@@ -184,3 +186,16 @@ SWAGGER_SETTINGS = {
         'BearerAuth': []
     }]
 }
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# 이미 STATIC_URL은 있을 거야:
+STATIC_URL = "/static/"
+
+# collectstatic이 모아줄 실제 경로
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# 개발 중이라면 앱 안에서 사용할 static 경로
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
