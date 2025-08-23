@@ -52,6 +52,7 @@ from .views import (
     PlaySomeQuizAddView,
     PlayMBTIQuizAddView,
     UuidToTypeView,
+    TypeResultIdToUuidView,
 )
 app_name = 'play'
 
@@ -72,6 +73,7 @@ urlpatterns = [
     path("analysis/chem/guest/<uuid:uuid>/detail/", PlayChemResultDetailViewGuest.as_view()),
     path("analysis/some/guest/<uuid:uuid>/detail/", PlaySomeResultDetailViewGuest.as_view()),
     path("analysis/mbti/guest/<uuid:uuid>/detail/", PlayMBTIResultDetailViewGuest.as_view()),
+    path("chat/result_type/search/<str:type>/<int:result_id>/", TypeResultIdToUuidView.as_view()),
 
 
     path("quiz/chem/<int:result_id>/", PlayChemQuizView.as_view()),

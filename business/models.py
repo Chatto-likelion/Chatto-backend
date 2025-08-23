@@ -22,6 +22,7 @@ class ResultBusContrib(models.Model):
     analysis_date_start = models.TextField(default="")
     analysis_date_end = models.TextField(default="")
     created_at = models.DateTimeField(default=timezone.now)
+    num_chat = models.IntegerField(default=0)
     chat = models.ForeignKey(ChatBus, on_delete=models.SET_NULL, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 
@@ -47,7 +48,9 @@ class ResultBusContribSpecPersonal(models.Model):
     participation = models.IntegerField(default=0)
     infoshare = models.IntegerField(default=0)
     probsolve = models.IntegerField(default=0)
+    proposal = models.IntegerField(default=0)
     resptime = models.IntegerField(default=0)
+    analysis = models.TextField(default="")
     type = models.TextField(default="")
 
 class ResultBusContribSpecPeriod(models.Model):
@@ -55,7 +58,7 @@ class ResultBusContribSpecPeriod(models.Model):
     spec = models.ForeignKey(ResultBusContribSpec, on_delete=models.CASCADE)
     name = models.TextField(default="")
     analysis = models.TextField(default="")
-    pediod_1 = models.IntegerField(default=0)
+    period_1 = models.IntegerField(default=0)
     period_2 = models.IntegerField(default=0)
     period_3 = models.IntegerField(default=0)
     period_4 = models.IntegerField(default=0)
