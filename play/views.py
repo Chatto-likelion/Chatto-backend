@@ -1355,7 +1355,8 @@ def generate_ChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
         종합적인 사람들 간의 분석 결과는 {spec.chatto_analysis}입니다.
         케미를 더 올리기 위한 분석과 팁은 {spec.chatto_levelup}, {spec.chatto_levelup_tips}입니다.
 
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 10개를 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 10개를 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
         문제1: [문제 내용]
@@ -2381,7 +2382,8 @@ def generate_OneChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
         종합적인 사람들 간의 분석 결과는 {spec.chatto_analysis}입니다.
         케미를 더 올리기 위한 분석과 팁은 {spec.chatto_levelup}, {spec.chatto_levelup_tips}입니다.
 
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 1개를 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 1개를 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
         문제: [문제 내용]
@@ -2553,7 +2555,9 @@ def generate_SomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
         {spec.chatto_counsel}
         {spec.chatto_counsel_tips}
 
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
+        문제에 사람의 이름이 들어가는 경우, 반드시 {spec.name_A}, {spec.name_B}중에서만 사용해야 합니다.
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
@@ -3550,6 +3554,8 @@ def generate_OneSomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
         {spec.chatto_counsel_tips}
 
         당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 1개 생성해야 합니다:
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
+        문제에 사람의 이름이 들어가는 경우, 반드시 {spec.name_A}, {spec.name_B}중에서만 사용해야 합니다.
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
@@ -3726,7 +3732,8 @@ def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
 
         개인별 분석 결과:{[r for r in personal_results]}
         
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
@@ -4727,7 +4734,8 @@ def generate_OneMBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
 
         개인별 분석 결과:{[r for r in personal_results]}
         
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 1개 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 1개 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
