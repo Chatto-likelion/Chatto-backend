@@ -111,6 +111,7 @@ from .utils import (
 class PlayChatView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     @swagger_auto_schema(
+        tags=["Play"],
         operation_id="채팅 파일 업로드",
         operation_description="채팅 파일을 업로드합니다.",
         manual_parameters=[
@@ -166,6 +167,7 @@ class PlayChatView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
+        tags=["Play"],
         operation_id="채팅 목록 조회",
         operation_description="로그인된 유저의 채팅 목록을 조회합니다.",
         manual_parameters=[
@@ -195,6 +197,7 @@ class PlayChatView(APIView):
 # 특정 채팅 삭제, 특정 채팅 제목 수정
 class PlayChatDetailView(APIView):
     @swagger_auto_schema(
+        tags=["Play"],
         operation_id="특정 채팅 삭제",
         operation_description="특정 채팅을 삭제합니다.",
         manual_parameters=[
@@ -238,6 +241,7 @@ class PlayChatDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @swagger_auto_schema(
+        tags=["Play"],
         operation_id="특정 채팅 제목 수정",
         operation_description="특정 채팅의 제목을 수정합니다.",
         request_body=ChatTitleModifyRequestSerializerPlay,
@@ -286,6 +290,7 @@ class PlayChatDetailView(APIView):
 # 채팅 케미 분석
 class PlayChatChemAnalyzeView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem"],
         operation_id="채팅 케미 분석",
         operation_description="채팅 케미 데이터를 분석합니다.",
         request_body=ChatChemAnalysisRequestSerializerPlay,
@@ -442,6 +447,7 @@ class PlayChatChemAnalyzeView(APIView):
 # 채팅 썸 분석
 class PlayChatSomeAnalyzeView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some"],
         operation_id="채팅 썸 분석",
         operation_description="채팅 썸 데이터를 분석합니다.",
         request_body=ChatSomeAnalysisRequestSerializerPlay,
@@ -568,6 +574,7 @@ class PlayChatSomeAnalyzeView(APIView):
 # 채팅 MBTI 분석
 class PlayChatMBTIAnalyzeView(APIView):
     @swagger_auto_schema(
+        tags=['Play_MBTI'],
         operation_id="채팅 MBTI 분석",
         operation_description="채팅 MBTI 데이터를 분석합니다.",
         request_body=ChatMBTIAnalysisRequestSerializerPlay,
@@ -743,6 +750,7 @@ class PlayChatMBTIAnalyzeView(APIView):
 # 특정 케미 분석 결과 조회, 특정 케미 분석 결과 삭제
 class PlayChemResultDetailView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem"],
         operation_id="특정 케미 분석 결과 조회",
         operation_description="특정 케미 분석 결과를 조회합니다.",
         manual_parameters=[
@@ -778,6 +786,7 @@ class PlayChemResultDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
+        tags=["Play_Chem"],
         operation_id="특정 케미 분석 결과 삭제",
         operation_description="특정 케미 분석 결과를 삭제합니다.",
         manual_parameters=[
@@ -807,6 +816,7 @@ class PlayChemResultDetailView(APIView):
 # 특정 썸 분석 결과 조회, 특정 썸 분석 결과 삭제
 class PlaySomeResultDetailView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some"],
         operation_id="특정 썸 분석 결과 조회",
         operation_description="특정 썸 분석 결과를 조회합니다.",
         manual_parameters=[
@@ -842,6 +852,7 @@ class PlaySomeResultDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
+        tags=["Play_Some"],
         operation_id="특정 썸 분석 결과 삭제",
         operation_description="특정 썸 분석 결과를 삭제합니다.",
         manual_parameters=[
@@ -871,6 +882,7 @@ class PlaySomeResultDetailView(APIView):
 # 특정 MBTI 분석 결과 조회, 특정 MBTI 분석 결과 삭제
 class PlayMBTIResultDetailView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI"],
         operation_id="특정 MBTI 분석 결과 조회",
         operation_description="특정 MBTI 분석 결과를 조회합니다.",
         manual_parameters=[
@@ -909,6 +921,7 @@ class PlayMBTIResultDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
+        tags=["Play_MBTI"],
         operation_id="특정 MBTI 분석 결과 삭제",
         operation_description="특정 MBTI 분석 결과를 삭제합니다.",
         manual_parameters=[
@@ -942,6 +955,7 @@ class PlayMBTIResultDetailView(APIView):
 # 모든 분석 결과 조회
 class PlayResultAllView(APIView):
     @swagger_auto_schema(
+        tags=["Play"],
         operation_id="모든 분석 결과 조회",
         operation_description="로그인된 유저의 모든 분석 결과를 조회합니다.",
         manual_parameters=[
@@ -986,6 +1000,7 @@ class PlayResultAllView(APIView):
 # 게스트용 특정 케미 분석 결과 조회
 class PlayChemResultDetailViewGuest(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Guest"],
         operation_id="게스트용 특정 케미 분석 결과 조회",
         operation_description="게스트(비로그인) 사용자가 공유된 UUID로 특정 케미 분석 결과를 조회합니다.",
         responses={200: ChemAllSerializerPlay, 404: "Not Found"},
@@ -1010,6 +1025,7 @@ class PlayChemResultDetailViewGuest(APIView):
 # 게스트용 특정 썸 분석 결과 조회
 class PlaySomeResultDetailViewGuest(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Guest"],
         operation_id="게스트용 특정 썸 분석 결과 조회",
         operation_description="게스트(비로그인) 사용자가 공유된 UUID로 특정 썸 분석 결과를 조회합니다.",
         responses={200: SomeAllSerializerPlay, 404: "Not Found"},
@@ -1032,6 +1048,7 @@ class PlaySomeResultDetailViewGuest(APIView):
 # 게스트용 특정 MBTI 분석 결과 조회
 class PlayMBTIResultDetailViewGuest(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Guest"],
         operation_id="게스트용 특정 MBTI 분석 결과 조회",
         operation_description="게스트(비로그인) 사용자가 공유된 UUID로 특정 MBTI 분석 결과를 조회합니다.",
         responses={200: MBTIAllSerializerPlay, 404: "Not Found"},
@@ -1059,6 +1076,7 @@ class PlayMBTIResultDetailViewGuest(APIView):
 # UUID 생성
 class GenerateUUIDView(APIView):
     @swagger_auto_schema(
+        tags=["Play"],
         operation_id="UUID 생성",
         operation_description="특정 분석 결과(chem/some/mbti)에 대한 공유용 UUID를 생성합니다.",
         request_body=UuidRequestSerializerPlay,
@@ -1138,6 +1156,7 @@ class GenerateUUIDView(APIView):
 # UUID --> 케미/썸/MBTI 변환
 class UuidToTypeView(APIView):
     @swagger_auto_schema(
+        tags=["Play"],
         operation_id="UUID로 타입 조회",
         operation_description="UUID를 통해 해당 결과가 chem/some/mbti 중 어떤 타입인지 반환합니다.",
         manual_parameters=[
@@ -1184,6 +1203,7 @@ class UuidToTypeView(APIView):
 # 타입 + resultid --> UUID 조회
 class TypeResultIdToUuidView(APIView):
     @swagger_auto_schema(
+        tags=["Play"],
         operation_id="타입+resultid로 UUID 조회",
         operation_description="타입(chem/some/mbti)과 result_id로 해당 결과의 공유용 UUID를 조회합니다.",
         manual_parameters=[
@@ -1475,6 +1495,7 @@ def generate_ChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
 # 케미 퀴즈 생성, 케미 퀴즈 조회, 케미 퀴즈 삭제
 class PlayChemQuizView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 생성",
         operation_description="특정 케미 분석 결과에 대한 퀴즈를 생성합니다.",
         manual_parameters=[
@@ -1553,6 +1574,7 @@ class PlayChemQuizView(APIView):
 
 
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 조회",
         operation_description="특정 케미 분석 결과에 대한 퀴즈를 조회합니다.",
         manual_parameters=[
@@ -1587,6 +1609,7 @@ class PlayChemQuizView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 삭제",
         operation_description="특정 케미 분석 결과에 대한 퀴즈를 삭제합니다.",
         manual_parameters=[
@@ -1629,6 +1652,7 @@ class PlayChemQuizView(APIView):
 # 케미 퀴즈 문제 리스트 상세 조회
 class PlayChemQuizQuestionListDetailView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 문제 리스트 상세 조회",
         operation_description="특정 케미 분석 결과에 대한 퀴즈의 문제 리스트를 상세 조회합니다.",
         manual_parameters=[
@@ -1667,6 +1691,7 @@ class PlayChemQuizQuestionListDetailView(APIView):
 # 케미 퀴즈 문제 리스트 조회 (게스트용)
 class PlayChemQuizQuestionListGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Guest"],
         operation_id="케미 퀴즈 문제 리스트 조회 (게스트용)",
         operation_description="특정 케미 분석 결과에 대한 퀴즈의 문제 리스트를 조회합니다. (게스트용)",
         responses={
@@ -1694,6 +1719,7 @@ class PlayChemQuizQuestionListGuestView(APIView):
 # 케미 퀴즈 풀이 시작
 class PlayChemQuizStartView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 풀이 시작",
         operation_description="케미 퀴즈 풀이를 시작합니다.",
         request_body=ChemQuizStartRequestSerializerPlay,
@@ -1746,6 +1772,7 @@ class PlayChemQuizStartView(APIView):
 # 케미 퀴즈 풀이 시작 (게스트용)
 class PlayChemQuizStartGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Guest"],
         operation_id="케미 퀴즈 풀이 시작 (게스트용)",
         operation_description="케미 퀴즈 풀이를 게스트로 시작합니다.",
         request_body=ChemQuizStartRequestSerializerPlay,
@@ -1788,6 +1815,7 @@ class PlayChemQuizStartGuestView(APIView):
 # 케미 퀴즈 결과 (문제별 리스트) 한 사람 조회, 케미 퀴즈 결과 한 사람 삭제
 class PlayChemQuizPersonalView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 결과 (문제별 리스트) 한 사람 조회",
         operation_description="케미 퀴즈 결과를 한 사람 기준으로 조회합니다.",
         manual_parameters=[
@@ -1825,6 +1853,7 @@ class PlayChemQuizPersonalView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 결과 한 사람 삭제",
         operation_description="케미 퀴즈 결과를 한 사람 기준으로 삭제합니다.",
         request_body=ChemQuizPersonalViewRequestSerializerPlay,
@@ -1863,6 +1892,7 @@ class PlayChemQuizPersonalView(APIView):
 # 케미 퀴즈 결과 (문제별 리스트) 한 사람 조회 (게스트용)
 class PlayChemQuizPersonalGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Guest"],
         operation_id="케미 퀴즈 결과 (문제별 리스트) 한 사람 조회 (게스트용)",
         operation_description="케미 퀴즈 결과를 게스트로 한 사람 기준으로 조회합니다.",
         responses={
@@ -1891,6 +1921,7 @@ class PlayChemQuizPersonalGuestView(APIView):
 # 케미 퀴즈 풀이 제출 (여러 문제 답변을 한 번에 제출)
 class PlayChemQuizSubmitView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 제출",
         operation_description="케미 퀴즈 풀이를 제출합니다. (여러 문제 답변을 한 번에 제출)",
         request_body=ChemQuizSubmitRequestSerializerPlay(many=True),
@@ -1997,6 +2028,7 @@ class PlayChemQuizSubmitView(APIView):
 # 케미 퀴즈 풀이 제출 (게스트용) (여러 문제 답변을 한 번에 제출)
 class PlayChemQuizSubmitGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Guest"],
         operation_id="케미 퀴즈 제출 (게스트용)",
         operation_description="케미 퀴즈 풀이를 게스트로 제출합니다. (여러 문제 답변을 한 번에 제출)",
         request_body=ChemQuizSubmitRequestSerializerPlay(many=True),
@@ -2092,6 +2124,7 @@ class PlayChemQuizSubmitGuestView(APIView):
 # 케미 퀴즈 결과 여러 사람 리스트 조회
 class PlayChemQuizResultListView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 결과 여러사람 리스트 조회",
         operation_description="케미 퀴즈 풀이 결과 리스트를 조회합니다.",
         manual_parameters=[
@@ -2128,6 +2161,7 @@ class PlayChemQuizResultListView(APIView):
 # 케미 퀴즈 문제 수정, 삭제
 class PlayChemQuizModifyView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 문제 수정",
         operation_description="케미 퀴즈의 특정 문제를 수정합니다.",
         request_body=ChemQuizModifyRequestSerializerPlay,
@@ -2196,6 +2230,7 @@ class PlayChemQuizModifyView(APIView):
         return Response(status=status.HTTP_200_OK)
  
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 문제 삭제",
         operation_description="케미 퀴즈의 특정 문제를 삭제합니다.",
         manual_parameters=[
@@ -2379,6 +2414,7 @@ def generate_OneChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
 # 케미 퀴즈 문제 추가 생성
 class PlayChemQuizAddView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Chem_Quiz"],
         operation_id="케미 퀴즈 문제 추가생성",
         operation_description="케미 퀴즈에 새로운 문제를 추가 생성합니다.",
         manual_parameters=[
@@ -2658,6 +2694,7 @@ def generate_SomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
 # 썸 퀴즈 생성, 썸 퀴즈 조회, 썸 퀴즈 삭제
 class PlaySomeQuizView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 생성",
         operation_description="특정 썸 분석 결과에 대한 퀴즈를 생성합니다.",
         manual_parameters=[
@@ -2736,6 +2773,7 @@ class PlaySomeQuizView(APIView):
 
 
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 조회",
         operation_description="특정 썸 분석 결과에 대한 퀴즈를 조회합니다.",
         manual_parameters=[
@@ -2770,6 +2808,7 @@ class PlaySomeQuizView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 삭제",
         operation_description="특정 썸 분석 결과에 대한 퀴즈를 삭제합니다.",
         manual_parameters=[
@@ -2812,6 +2851,7 @@ class PlaySomeQuizView(APIView):
 # 썸 퀴즈 문제 리스트 상세 조회
 class PlaySomeQuizQuestionListDetailView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 문제 리스트 상세 조회",
         operation_description="특정 썸 분석 결과에 대한 퀴즈의 문제 리스트를 상세 조회합니다.",
         manual_parameters=[
@@ -2850,6 +2890,7 @@ class PlaySomeQuizQuestionListDetailView(APIView):
 # 썸 퀴즈 문제 리스트 조회 (게스트용)
 class PlaySomeQuizQuestionListView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Guest"],
         operation_id="썸 퀴즈 문제 리스트 조회 (게스트용)",
         operation_description="특정 썸 분석 결과에 대한 퀴즈의 문제 리스트를 조회합니다. (게스트용)",
         responses={
@@ -2877,6 +2918,7 @@ class PlaySomeQuizQuestionListView(APIView):
 # 썸 퀴즈 풀이 시작
 class PlaySomeQuizStartView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 풀이 시작",
         operation_description="썸 퀴즈 풀이를 시작합니다.",
         request_body=SomeQuizStartRequestSerializerPlay,
@@ -2929,6 +2971,7 @@ class PlaySomeQuizStartView(APIView):
 # 썸 퀴즈 풀이 시작 (게스트용)
 class PlaySomeQuizStartGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Guest"],
         operation_id="썸 퀴즈 풀이 시작 (게스트용)",
         operation_description="썸 퀴즈 풀이를 시작합니다. (게스트용)",
         request_body=SomeQuizStartRequestSerializerPlay,
@@ -2971,6 +3014,7 @@ class PlaySomeQuizStartGuestView(APIView):
 # 썸 퀴즈 결과 (문제별 리스트) 한 사람 조회, 썸 퀴즈 결과 한 사람 삭제
 class PlaySomeQuizPersonalView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 결과 (문제별 리스트) 한 사람 조회",
         operation_description="썸 퀴즈 결과를 한 사람 기준으로 조회합니다.",
         manual_parameters=[
@@ -3008,6 +3052,7 @@ class PlaySomeQuizPersonalView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 결과 한 사람 삭제",
         operation_description="썸 퀴즈 결과를 한 사람 기준으로 삭제합니다.",
         request_body=SomeQuizPersonalViewRequestSerializerPlay,
@@ -3046,6 +3091,7 @@ class PlaySomeQuizPersonalView(APIView):
 # 썸 퀴즈 결과 (문제별 리스트) 한 사람 조회 (게스트용)
 class PlaySomeQuizPersonalGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Guest"],
         operation_id="썸 퀴즈 결과 (문제별 리스트) 한 사람 조회 (게스트용)",
         operation_description="썸 퀴즈 결과를 한 사람 기준으로 조회합니다. (게스트용)",
         responses={
@@ -3074,6 +3120,7 @@ class PlaySomeQuizPersonalGuestView(APIView):
 # 썸 퀴즈 풀이 제출 (여러 문제 답변을 한 번에 제출)
 class PlaySomeQuizSubmitView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 제출",
         operation_description="썸 퀴즈 풀이를 제출합니다. (여러 문제 답변을 한 번에 제출)",
         request_body=SomeQuizSubmitRequestSerializerPlay(many=True),
@@ -3180,6 +3227,7 @@ class PlaySomeQuizSubmitView(APIView):
 # 썸 퀴즈 풀이 제출 (여러 문제 답변을 한 번에 제출) (게스트용)
 class PlaySomeQuizSubmitGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Guest"],
         operation_id="썸 퀴즈 제출 (게스트용)",
         operation_description="썸 퀴즈 풀이를 제출합니다. (여러 문제 답변을 한 번에 제출) (게스트용)",
         request_body=SomeQuizSubmitRequestSerializerPlay(many=True),
@@ -3275,6 +3323,7 @@ class PlaySomeQuizSubmitGuestView(APIView):
 # 썸 퀴즈 결과 여러 사람 리스트 조회
 class PlaySomeQuizResultListView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 결과 여러사람 리스트 조회",
         operation_description="썸 퀴즈 풀이 결과 리스트를 조회합니다.",
         manual_parameters=[
@@ -3311,6 +3360,7 @@ class PlaySomeQuizResultListView(APIView):
 # 썸 퀴즈 문제 수정, 삭제
 class PlaySomeQuizModifyView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 문제 수정",
         operation_description="썸 퀴즈의 특정 문제를 수정합니다.",
         request_body=SomeQuizModifyRequestSerializerPlay,
@@ -3375,6 +3425,7 @@ class PlaySomeQuizModifyView(APIView):
         return Response(status=status.HTTP_200_OK)
     
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 문제 삭제",
         operation_description="썸 퀴즈의 특정 문제를 삭제합니다.",
         manual_parameters=[
@@ -3532,6 +3583,7 @@ def generate_OneSomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
 # 썸 퀴즈 문제 추가 생성
 class PlaySomeQuizAddView(APIView):
     @swagger_auto_schema(
+        tags=["Play_Some_Quiz"],
         operation_id="썸 퀴즈 문제 추가생성",
         operation_description="썸 퀴즈에 새로운 문제를 추가 생성합니다.",
         manual_parameters=[
@@ -3815,6 +3867,7 @@ def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
 # MBTI 퀴즈 생성, MBTI 퀴즈 조회, MBTI 퀴즈 삭제
 class PlayMBTIQuizView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 생성",
         operation_description="특정 MBTi 분석 결과에 대한 퀴즈를 생성합니다.",
         manual_parameters=[
@@ -3893,6 +3946,7 @@ class PlayMBTIQuizView(APIView):
 
 
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 조회",
         operation_description="특정 MBTI 분석 결과에 대한 퀴즈를 조회합니다.",
         manual_parameters=[
@@ -3927,6 +3981,7 @@ class PlayMBTIQuizView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 삭제",
         operation_description="특정 MBTI 분석 결과에 대한 퀴즈를 삭제합니다.",
         manual_parameters=[
@@ -3969,6 +4024,7 @@ class PlayMBTIQuizView(APIView):
 # MBTI 퀴즈 문제 리스트 상세 조회
 class PlayMBTIQuizQuestionListDetailView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 문제 리스트 상세 조회",
         operation_description="특정 MBTI 분석 결과에 대한 퀴즈의 문제 리스트를 상세 조회합니다.",
         manual_parameters=[
@@ -4007,6 +4063,7 @@ class PlayMBTIQuizQuestionListDetailView(APIView):
 # MBTI 퀴즈 문제 리스트 조회 (게스트용)
 class PlayMBTIQuizQuestionListView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Guest"],
         operation_id="MBTI 퀴즈 문제 리스트 조회 (게스트용)",
         operation_description="특정 MBTI 분석 결과에 대한 퀴즈의 문제 리스트를 조회합니다. (게스트용)",
         responses={
@@ -4034,6 +4091,7 @@ class PlayMBTIQuizQuestionListView(APIView):
 # MBTI 퀴즈 풀이 시작
 class PlayMBTIQuizStartView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 풀이 시작",
         operation_description="MBTI 퀴즈 풀이를 시작합니다.",
         request_body=MBTIQuizStartRequestSerializerPlay,
@@ -4086,6 +4144,7 @@ class PlayMBTIQuizStartView(APIView):
 # MBTI 퀴즈 풀이 시작 (게스트용)
 class PlayMBTIQuizStartGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Guest"],
         operation_id="MBTI 퀴즈 풀이 시작 (게스트용)",
         operation_description="MBTI 퀴즈 풀이를 시작합니다. (게스트용)",
         request_body=MBTIQuizStartRequestSerializerPlay,
@@ -4128,6 +4187,7 @@ class PlayMBTIQuizStartGuestView(APIView):
 # MBTI 퀴즈 결과 (문제별 리스트) 한 사람 조회, MBTI 퀴즈 결과 한 사람 삭제
 class PlayMBTIQuizPersonalView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 결과 (문제별 리스트) 한 사람 조회",
         operation_description="MBTI 퀴즈 결과를 한 사람 기준으로 조회합니다.",
         manual_parameters=[
@@ -4164,6 +4224,7 @@ class PlayMBTIQuizPersonalView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 결과 한 사람 삭제",
         operation_description="MBTI 퀴즈 결과를 한 사람 기준으로 삭제합니다.",
         request_body=MBTIQuizPersonalViewRequestSerializerPlay,
@@ -4202,6 +4263,7 @@ class PlayMBTIQuizPersonalView(APIView):
 # MBTI 퀴즈 결과 (문제별 리스트) 한 사람 조회 (게스트용)
 class PlayMBTIQuizPersonalGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Guest"],
         operation_id="MBTI 퀴즈 결과 (문제별 리스트) 한 사람 조회 (게스트용)",
         operation_description="MBTI 퀴즈 결과를 한 사람 기준으로 조회합니다. (게스트용)",
         responses={
@@ -4230,6 +4292,7 @@ class PlayMBTIQuizPersonalGuestView(APIView):
 # MBTI 퀴즈 풀이 제출 (여러 문제 답변을 한 번에 제출)
 class PlayMBTIQuizSubmitView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 제출",
         operation_description="MBTI 퀴즈 풀이를 제출합니다. (여러 문제 답변을 한 번에 제출)",
         request_body=MBTIQuizSubmitRequestSerializerPlay(many=True),
@@ -4336,6 +4399,7 @@ class PlayMBTIQuizSubmitView(APIView):
 # MBTI 퀴즈 풀이 제출 (여러 문제 답변을 한 번에 제출) (게스트용)
 class PlayMBTIQuizSubmitGuestView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Guest"],
         operation_id="MBTI 퀴즈 제출 (게스트용)",
         operation_description="MBTI 퀴즈 풀이를 제출합니다. (여러 문제 답변을 한 번에 제출, 게스트용)",
         request_body=MBTIQuizSubmitRequestSerializerPlay(many=True),
@@ -4431,6 +4495,7 @@ class PlayMBTIQuizSubmitGuestView(APIView):
 # MBTI 퀴즈 결과 여러 사람 리스트 조회
 class PlayMBTIQuizResultListView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 결과 여러사람 리스트 조회",
         operation_description="MBTI 퀴즈 풀이 결과 리스트를 조회합니다.",
         manual_parameters=[
@@ -4467,6 +4532,7 @@ class PlayMBTIQuizResultListView(APIView):
 # MBTI 퀴즈 문제 수정, 삭제
 class PlayMBTIQuizModifyView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 문제 수정",
         operation_description="MBTI 퀴즈의 특정 문제를 수정합니다.",
         request_body=MBTIQuizModifyRequestSerializerPlay,
@@ -4531,6 +4597,7 @@ class PlayMBTIQuizModifyView(APIView):
         return Response(status=status.HTTP_200_OK)
     
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 문제 삭제",
         operation_description="MBTI 퀴즈의 특정 문제를 삭제합니다.",
         manual_parameters=[
@@ -4694,6 +4761,7 @@ def generate_OneMBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
 # MBTI 퀴즈 문제 추가
 class PlayMBTIQuizAddView(APIView):
     @swagger_auto_schema(
+        tags=["Play_MBTI_Quiz"],
         operation_id="MBTI 퀴즈 문제 추가",
         operation_description="MBTI 퀴즈에 문제를 추가합니다.",
         manual_parameters=[
