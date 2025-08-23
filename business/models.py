@@ -50,6 +50,7 @@ class ResultBusContribSpecPersonal(models.Model):
     probsolve = models.IntegerField(default=0)
     proposal = models.IntegerField(default=0)
     resptime = models.IntegerField(default=0)
+    analysis = models.TextField(default="")
     type = models.TextField(default="")
 
 class ResultBusContribSpecPeriod(models.Model):
