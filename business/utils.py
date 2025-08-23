@@ -238,6 +238,7 @@ def contrib_analysis_with_gemini(client: genai.Client, chat: ChatBus, analysis_o
         문제 해결 점수: [숫자]
         의견/아이디어 제시 점수: [숫자]
         응답 속도 점수: [숫자]
+        개인 분석 요약: [1 문장]
         ---
         (참여자 수만큼 반복)
         ###
@@ -299,6 +300,7 @@ def contrib_analysis_with_gemini(client: genai.Client, chat: ChatBus, analysis_o
                     "probsolve": parse_response(r"문제 해결 점수:\s*(\d+)", block, is_int=True),
                     "proposal": parse_response(r"의견/아이디어 제시 점수:\s*(\d+)", block, is_int=True),
                     "resptime": parse_response(r"응답 속도 점수:\s*(\d+)", block, is_int=True),
+                    "analysis": parse_response(r"개인 분석 요약:\s*(.+)", block)
                 })
             
             # 최종 결과 조합

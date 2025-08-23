@@ -305,7 +305,7 @@ class TypeResultIdToUuidView(APIView):
 ###################################################################
 
 
-
+# 채팅 기여 분석
 class BusChatContribAnalyzeView(APIView):
     @swagger_auto_schema(
         operation_id="채팅 기여 분석",
@@ -400,6 +400,7 @@ class BusChatContribAnalyzeView(APIView):
                 probsolve=person_data.get("probsolve", 0),
                 proposal=person_data.get("proposal", 0),
                 resptime=person_data.get("resptime", 0),
+                analysis=person_data.get("analysis", ""),
             )
 
         # 3. 기간별 분석 결과 (Periodic Specs) 저장
