@@ -111,7 +111,7 @@ def filter_chat_by_date(lines: list, analysis_option: dict) -> tuple[list, int]:
     # 필터링된 라인 리스트와 그 길이를 튜플로 반환
     return filtered_lines, len(filtered_lines)
 
-def strip_helper(text: str) -> str:
+def strip_helper(cleaned_text: str) -> str:
     """
     문자열에서 불필요한 부분들을 제거합니다.
     1. 앞뒤의 마크다운 코드 블록(```)
@@ -119,22 +119,21 @@ def strip_helper(text: str) -> str:
     3. 앞뒤의 불필요한 기호(따옴표, 공백 등)
     """
     # 1. '```json', '```' 등 코드 블록 제거
-    cleaned_text = re.sub(r'^```[\w]*\n', '', text)
-    cleaned_text = re.sub(r'\n```$', '', cleaned_text)
+    # cleaned_text = re.sub(r'^```[\w]*\n', '', cleaned_text)
+    # cleaned_text = re.sub(r'\n```$', '', cleaned_text)
 
     # 2. [사람 이름] [시간] 이 연속된 헤더가 있을 경우 제거
     cleaned_text = re.sub(r'^\[.*?\]\s*\[.*?\]\s*', '', cleaned_text)
 
-    # 3. 양 끝에 남은 공백, 따옴표(`'`), 백틱(`)을 모두 제거
-    chars_to_strip = "'` "
+    # 3. 양 끝에 남은 공백, 백틱(`)을 모두 제거
+    chars_to_strip = "` "
     previous_text = ""
     while cleaned_text != previous_text:
         previous_text = cleaned_text
         cleaned_text = cleaned_text.strip(chars_to_strip)
 
-
     # 4. (선택) 여러 개의 공백을 하나로 합치기
-    cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
+    # cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
 
     return cleaned_text
 
