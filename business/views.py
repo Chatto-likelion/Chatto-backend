@@ -41,7 +41,7 @@ from django.conf import settings
 
 from .utils import(
     extract_chat_title,
-    count_chat_participants_with_gemini,
+    count_chat_participants,
     contrib_analysis_with_gemini,
 )
 
@@ -89,7 +89,7 @@ class BusChatView(APIView):
             chat.title = extract_chat_title(file_path)
 
             # 참여 인원 수를 Gemini API로 계산
-            num_of_people = count_chat_participants_with_gemini(file_path)
+            num_of_people = count_chat_participants(file_path)
             chat.people_num = num_of_people
 
             chat.save()

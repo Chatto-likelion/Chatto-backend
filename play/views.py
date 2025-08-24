@@ -99,7 +99,7 @@ from django.conf import settings
 
 from .utils import (
     extract_chat_title,
-    count_chat_participants_with_gemini,
+    count_chat_participants,
     some_analysis_with_gemini,
     mbti_analysis_with_gemini,
     chem_analysis_with_gemini,
@@ -154,7 +154,7 @@ class PlayChatView(APIView):
             chat.title = extract_chat_title(file_path)
 
             # 2. Gemini API를 호출하여 인원 수 계산
-            num_of_people = count_chat_participants_with_gemini(file_path)
+            num_of_people = count_chat_participants(file_path)
             chat.people_num = num_of_people
             
             # 3. 변경된 제목과 인원 수를 함께 DB에 최종 저장
