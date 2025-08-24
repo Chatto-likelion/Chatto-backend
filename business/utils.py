@@ -125,8 +125,8 @@ def strip_helper(text: str) -> str:
     # 2. [사람 이름] [시간] 이 연속된 헤더가 있을 경우 제거
     cleaned_text = re.sub(r'^\[.*?\]\s*\[.*?\]\s*', '', cleaned_text)
 
-    # 3. 양 끝에 남은 공백, 따옴표(`'`, `"`), 백틱(`)을 모두 제거
-    chars_to_strip = "\"'` "
+    # 3. 양 끝에 남은 공백, 따옴표(`'`), 백틱(`)을 모두 제거
+    chars_to_strip = "'` "
     previous_text = ""
     while cleaned_text != previous_text:
         previous_text = cleaned_text
