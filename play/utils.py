@@ -122,13 +122,16 @@ def strip_helper(text: str) -> str:
     cleaned_text = re.sub(r'^```[\w]*\n', '', text)
     cleaned_text = re.sub(r'\n```$', '', cleaned_text)
 
-    # 2. (추가된 기능) 대괄호([])와 그 안의 내용 제거
-    # [사람1]
-    cleaned_text = re.sub(r'\[.*?\]', '', cleaned_text)
+    # 2. [사람 이름] [시간] 이 연속된 헤더가 있을 경우 제거
+    cleaned_text = re.sub(r'^\[.*?\]\s*\[.*?\]\s*', '', cleaned_text)
 
     # 3. 양 끝에 남은 공백, 따옴표(`'`, `"`), 백틱(`)을 모두 제거
     chars_to_strip = "\"'` "
-    cleaned_text = cleaned_text.strip(chars_to_strip)
+    previous_text = ""
+    while cleaned_text != previous_text:
+        previous_text = cleaned_text
+        cleaned_text = cleaned_text.strip(chars_to_strip)
+
 
     # 4. (선택) 여러 개의 공백을 하나로 합치기
     cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
@@ -136,265 +139,7 @@ def strip_helper(text: str) -> str:
     return cleaned_text
 
 
-# ------------------------- some AI helper function ------------------------- #
-# --- 분석 단위별 함수 (Analysis-Specific Functions) ---
-def analyze_main_score(client: genai.Client, prompt_base: str, chat_sample: str) -> dict:
-    """1. 썸 지수 및 전반적인 코멘트 분석"""
-    prompt = f"""
-    {prompt_base}
-
-    [분석 항목]
-    1.  **주요 분석**: '썸'의 온도 점수를 0~100점 사이의 '썸 지수'로 평가하고, 전반적인 상황에 대한 1~2 문장의 코멘트를 작성해주세요.
-
-    --- [출력 형식] ---
-    썸 지수: [숫자]
-    전반적인 코멘트: [코멘트 문장 1, 코멘트 문장 2]
-
-    --- [카카오톡 대화 내용] ---
-    {chat_sample}
-    --- [분석 시작] ---
-    """
-    response = client.models.generate_content( 
-        model='gemini-2.0-flash',
-        contents=[prompt]
-    )
-    return {
-        "score_main": parse_response(r"썸 지수:\s*(\d+)", response.text, is_int=True),
-        "comment_main": parse_response(r"전반적인 코멘트:\s*(.+)", response.text),
-    }
-
-def analyze_likability(client: genai.Client, prompt_base: str, chat_sample: str) -> dict:
-    """2. 호감도 분석"""
-    prompt = f"""
-    {prompt_base}
-
-    [분석 항목]
-    1.  **호감도 분석**: 대화의 중심인물 두 명을 A와 B로 지정하세요. A가 B에게, B가 A에게 보이는 호감도를 각각 0~100점으로 평가하고, 각자가 상대를 대하는 대화상 특징을 5~10자 내외의 짧은 어구 3개로 설명해주세요. 마지막으로 관계를 2~3문장으로 요약해주세요.
-
-    --- [출력 형식] ---
-    이름 A: [A의 실제 이름]
-    이름 B: [B의 실제 이름]
-    A->B 호감도: [숫자]
-    B->A 호감도: [숫자]
-    A의 특징: [특징1, 특징2, 특징3]
-    B의 특징: [특징1, 특징2, 특징3]
-    호감도 요약: [2-3 문장 요약]
-
-    --- [카카오톡 대화 내용] ---
-    {chat_sample}
-    --- [분석 시작] ---
-    """
-    response = client.models.generate_content( 
-        model='gemini-2.0-flash',
-        contents=[prompt]
-    )
-    return {
-        "name_A": parse_response(r"이름 A:\s*(.+)", response.text),
-        "name_B": parse_response(r"이름 B:\s*(.+)", response.text),
-        "score_A": parse_response(r"A->B 호감도:\s*(\d+)", response.text, is_int=True),
-        "score_B": parse_response(r"B->A 호감도:\s*(\d+)", response.text, is_int=True),
-        "trait_A": parse_response(r"A의 특징:\s*(.+)", response.text),
-        "trait_B": parse_response(r"B의 특징:\s*(.+)", response.text),
-        "summary": parse_response(r"호감도 요약:\s*(.+)", response.text),
-    }
-
-def analyze_conversation_style(client: genai.Client, prompt_base: str, chat_sample: str) -> dict:
-    """3. 대화 스타일 분석 (말투, 감정표현, 호칭)"""
-    prompt = f"""
-    {prompt_base}
-
-    [분석 항목]
-    1.  **대화 스타일 분석**: 말투, 감정표현(이모티콘, ㅋㅋ 등), 호칭 세 가지 기준에 대해 각각 0~100점 점수, 한 줄 설명, 실제 대화 예시를 제시해주세요.
-
-    --- [출력 형식] ---
-    말투 점수: [숫자]
-    말투 설명: [한 줄 설명]
-    말투 예시: [실제 대화 예시]
-    감정표현 점수: [숫자]
-    감정표현 설명: [한 줄 설명]
-    감정표현 예시: [실제 대화 예시]
-    호칭 점수: [숫자]
-    호칭 설명: [한 줄 설명]
-    호칭 예시: [실제 대화 예시]
-
-    --- [카카오톡 대화 내용] ---
-    {chat_sample}
-    --- [분석 시작] ---
-    """
-    response = client.models.generate_content( 
-        model='gemini-2.0-flash',
-        contents=[prompt]
-    )
-    return {
-        "tone_score": parse_response(r"말투 점수:\s*(\d+)", response.text, is_int=True),
-        "tone_desc": parse_response(r"말투 설명:\s*(.+)", response.text),
-        "tone_ex": parse_response(r"말투 예시:\s*(.+)", response.text),
-        "emo_score": parse_response(r"감정표현 점수:\s*(\d+)", response.text, is_int=True),
-        "emo_desc": parse_response(r"감정표현 설명:\s*(.+)", response.text),
-        "emo_ex": parse_response(r"감정표현 예시:\s*(.+)", response.text),
-        "addr_score": parse_response(r"호칭 점수:\s*(\d+)", response.text, is_int=True),
-        "addr_desc": parse_response(r"호칭 설명:\s*(.+)", response.text),
-        "addr_ex": parse_response(r"호칭 예시:\s*(.+)", response.text),
-    }
-
-def analyze_reply_pattern(client: genai.Client, prompt_base: str, chat_sample: str) -> dict:
-    """4. 답장 패턴 분석"""
-    prompt = f"""
-    {prompt_base}
-
-    [분석 항목]
-    1. **답장 패턴 분석**: 타임스탬프를 기반으로 대화자 A와 B의 평균 답장 시간을 '분' 단위로 추정하고, 각자의 답장 경향을 한 줄로 설명해주세요.
-
-    --- [출력 형식] ---
-    A 평균 답장 시간(분): [숫자]
-    B 평균 답장 시간(분): [숫자]
-    A 답장 특징: [한 줄 설명]
-    B 답장 특징: [한 줄 설명]
-    
-    --- [카카오톡 대화 내용] ---
-    {chat_sample}
-    --- [분석 시작] ---
-    """
-    response = client.models.generate_content( 
-        model='gemini-2.0-flash',
-        contents=[prompt]
-    )
-    return {
-        "reply_A": parse_response(r"A 평균 답장 시간\(분\):\s*(\d+)", response.text, is_int=True),
-        "reply_B": parse_response(r"B 평균 답장 시간\(분\):\s*(\d+)", response.text, is_int=True),
-        "reply_A_desc": parse_response(r"A 답장 특징:\s*(.+)", response.text),
-        "reply_B_desc": parse_response(r"B 답장 특징:\s*(.+)", response.text),
-    }
-
-def analyze_appointment_proposal(client: genai.Client, prompt_base: str, chat_sample: str) -> dict:
-    """5. 약속 제안 분석"""
-    prompt = f"""
-    {prompt_base}
-
-    [분석 항목]
-    1. **약속 제안 분석**: 대화자 A와 B가 만남을 제안한 횟수를 각각 세고, 제안 스타일을 한 줄로 설명한 뒤, 가장 대표적인 실제 제안 예시를 각각 들어주세요. (예시가 없으면 '없음')
-
-    --- [출력 형식] ---
-    A 약속 제안 횟수: [숫자]
-    B 약속 제안 횟수: [숫자]
-    A 약속 제안 특징: [한 줄 설명]
-    B 약속 제안 특징: [한 줄 설명]
-    A 약속 제안 예시: [실제 대화 예시]
-    B 약속 제안 예시: [실제 대화 예시]
-
-    --- [카카오톡 대화 내용] ---
-    {chat_sample}
-    --- [분석 시작] ---
-    """
-    response = client.models.generate_content( 
-        model='gemini-2.0-flash',
-        contents=[prompt]
-    )
-    return {
-        "rec_A": parse_response(r"A 약속 제안 횟수:\s*(\d+)", response.text, is_int=True),
-        "rec_B": parse_response(r"B 약속 제안 횟수:\s*(\d+)", response.text, is_int=True),
-        "rec_A_desc": parse_response(r"A 약속 제안 특징:\s*(.+)", response.text),
-        "rec_B_desc": parse_response(r"B 약속 제안 특징:\s*(.+)", response.text),
-        "rec_A_ex": parse_response(r"A 약속 제안 예시:\s*(.+)", response.text),
-        "rec_B_ex": parse_response(r"B 약속 제안 예시:\s*(.+)", response.text),
-    }
-
-def analyze_conversation_lead(client: genai.Client, prompt_base: str, chat_sample: str) -> dict:
-    """6. 대화 주도권 분석"""
-    prompt = f"""
-    {prompt_base}
-
-    [분석 항목]
-    1. **대화 주도권 분석**: 대화자 A와 B가 새로운 대화 주제를 시작한 비율을 합계 100%가 되도록 추정하고, 주제를 시작하는 스타일을 한 줄로 설명한 뒤, 실제 예시를 각각 들어주세요. (예시가 없으면 '없음'). 
-
-    --- [출력 형식] ---
-    A 주제 시작 비율(%): [숫자]
-    B 주제 시작 비율(%): [숫자]
-    A 주제 시작 특징: [한 줄 설명]
-    B 주제 시작 특징: [한 줄 설명]
-    A 주제 시작 예시: [실제 대화 예시]
-    B 주제 시작 예시: [실제 대화 예시]
-    
-    --- [카카오톡 대화 내용] ---
-    {chat_sample}
-    --- [분석 시작] ---
-    """
-    response = client.models.generate_content( 
-        model='gemini-2.0-flash',
-        contents=[prompt]
-    )
-    return {
-        "atti_A": parse_response(r"A 주제 시작 비율\(%\):\s*(\d+)", response.text, is_int=True),
-        "atti_B": parse_response(r"B 주제 시작 비율\(%\):\s*(\d+)", response.text, is_int=True),
-        "atti_A_desc": parse_response(r"A 주제 시작 특징:\s*(.+)", response.text),
-        "atti_B_desc": parse_response(r"B 주제 시작 특징:\s*(.+)", response.text),
-        "atti_A_ex": parse_response(r"A 주제 시작 예시:\s*(.+)", response.text),
-        "atti_B_ex": parse_response(r"B 주제 시작 예시:\s*(.+)", response.text),
-    }
-    
-def analyze_message_length(client: genai.Client, prompt_base: str, chat_sample: str) -> dict:
-    """7. 평균 메시지 길이 및 대화 패턴 분석"""
-    prompt = f"""
-    {prompt_base}
-
-    [분석 항목]
-    1. **평균 메시지 길이 분석**: 대화자 A와 B의 평균 메시지 길이를 각각 계산하고, 메시지 스타일을 한 줄로 설명한 뒤, 실제 예시를 각각 들어주세요. (예시가 없으면 '없음'). 
-    2. **대화 패턴 요약**: 분석한 메시지 길이와 내용을 바탕으로 두 사람의 대화 패턴을 2문장으로 요약해주세요.
-
-    --- [출력 형식] ---
-    A 평균 메시지 길이: [숫자]
-    B 평균 메시지 길이: [숫자]
-    A 메시지 특징: [한 줄 설명]
-    B 메시지 특징: [한 줄 설명]
-    A 메시지 예시: [실제 대화 예시]
-    B 메시지 예시: [실제 대화 예시]
-    
-    대화 패턴 분석: ["요약 문장 1", "요약 문장 2"]
-
-    --- [카카오톡 대화 내용] ---
-    {chat_sample}
-    --- [분석 시작] ---
-    """
-    response = client.models.generate_content( 
-        model='gemini-2.0-flash',
-        contents=[prompt]
-    )
-    return {
-        "len_A": parse_response(r"A 평균 메시지 길이:\s*(\d+)", response.text, is_int=True),
-        "len_B": parse_response(r"B 평균 메시지 길이:\s*(\d+)", response.text, is_int=True),
-        "len_A_desc": parse_response(r"A 메시지 특징:\s*(.+)", response.text),
-        "len_B_desc": parse_response(r"B 메시지 특징:\s*(.+)", response.text),
-        "len_A_ex": parse_response(r"A 메시지 예시:\s*(.+)", response.text),
-        "len_B_ex": parse_response(r"B 메시지 예시:\s*(.+)", response.text),
-        "pattern_analysis": parse_response(r"대화 패턴 분석:\s*(.+)", response.text),
-    }
-
-def get_final_counseling(client: genai.Client, prompt_base: str, chat_sample: str) -> dict:
-    """8. 종합 상담 및 분석 메시지 수 계산"""
-    prompt = f"""
-    {prompt_base}
-
-    [분석 항목]
-    1. **종합 상담**: '챗토'의 입장에서, 두 사람의 현재 관계를 긍정적으로 요약하고 응원하는 3~4문장의 따뜻한 상담 메시지와, '썸' 관계 발전을 위한 1~2문장의 실용적인 팁을 작성해주세요.
-
-    --- [출력 형식] ---
-    챗토의 연애상담: [상담 문장 1, 상담 문장 2, 상담 문장 3]
-    챗토의 연애상담 팁: [팁 문장 1, 팁 문장 2]
-    
-    --- [카카오톡 대화 내용] ---
-    {chat_sample}
-    --- [분석 시작] ---
-    """
-    response = client.models.generate_content( 
-        model='gemini-2.0-flash',
-        contents=[prompt]
-    )
-    return {
-        "chatto_counsel": parse_response(r"챗토의 연애상담:\s*(.+)", response.text),
-        "chatto_counsel_tips": parse_response(r"챗토의 연애상담 팁:\s*(.+)", response.text),
-    }
-
-# --- 메인 함수 (Main Function) ---
+# ------------------------- some AI helper function ------------------------- #    
 def some_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_option: dict) -> dict:
     """
     사용자가 지정한 기간의 채팅을 필터링한 후,
@@ -417,52 +162,148 @@ def some_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         if not filtered_lines:
              return {"error_message": "선택하신 기간에 해당하는 대화 내용이 없습니다."}
 
-        chat_content_sample = "".join(filtered_lines)
+        chat_sample = "".join(filtered_lines)
 
         age_info = analysis_option.get("age", "알 수 없음")
         relationship_info = analysis_option.get("relationship", "알 수 없음")
 
-        # 모든 프롬프트에 공통적으로 사용될 기본 정보
-        prompt_base = f"""
+        # 프롬프트 정보
+        prompt = f"""
         당신은 연애 상담 및 카카오톡 대화 분석 전문가 '챗토'입니다.
 
-        [분석 요청자 정보]
+        [분석 요청 정보]
         - 나이대: {age_info}
         - 상대방과의 관계: {relationship_info}
 
         [당신의 임무]
         요청자가 제시한 관계에 편향되지 말고, 주어진 대화 내용만을 근거로 두 사람의 관계를 **매우 객관적으로 분석**해야 합니다.
-        반드시 지정된 출력 형식에 맞춰 결과를 작성해주세요. 다른 부가 설명은 절대 추가하지 마세요.
+        아래의 모든 분석 항목에 대해, 반드시 지정된 출력 형식에 맞춰 결과를 작성해주세요.
+
+        [분석 항목]
+        1.  **주요 분석**: '썸'의 온도 점수를 0~100점 사이의 '썸 지수'로 평가하고, 전반적인 상황에 대한 1~2 문장의 코멘트를 작성해주세요.
+        2.  **호감도 분석**: 대화의 중심인물 두 명을 A와 B로 지정하세요. A가 B에게, B가 A에게 보이는 호감도를 각각 0~100점으로 평가하고, 각자가 상대를 대하는 대화상 특징을 5~10자 내외의 짧은 어구 3개로 설명해주세요. 마지막으로 관계를 2~3문장으로 요약해주세요.
+        3.  **대화 스타일 분석**: 말투, 감정표현(이모티콘, ㅋㅋ 등), 호칭 세 가지 기준에 대해 각각 0~100점 점수, 한 줄 설명, 실제 대화 예시를 제시해주세요.
+        4.  **답장 패턴 분석**: 타임스탬프를 기반으로 대화자 A와 B의 평균 답장 시간을 '분' 단위로 추정하고, 각자의 답장 경향을 한 줄로 설명해주세요.
+        5.  **약속 제안 분석**: 대화자 A와 B가 만남을 제안한 횟수를 각각 세고, 제안 스타일을 한 줄로 설명한 뒤, 가장 대표적인 실제 제안 예시를 각각 들어주세요. (예시가 없으면 '없음')
+        6.  **대화 주도권 분석**: 대화자 A와 B가 새로운 대화 주제를 시작한 비율을 합계 100%가 되도록 추정하고, 주제를 시작하는 스타일을 한 줄로 설명한 뒤, 실제 예시를 각각 들어주세요. (예시가 없으면 '없음'). 
+        7. **평균 메시지 길이 분석**: 대화자 A와 B의 평균 메시지 길이를 각각 계산하고, 메시지 스타일을 한 줄로 설명한 뒤, 실제 예시를 각각 들어주세요. (예시가 없으면 '없음'). 
+        8. **대화 패턴 요약**: 분석한 메시지 길이와 내용을 바탕으로 두 사람의 대화 패턴을 2문장으로 요약해주세요.
+        9. **종합 상담**: '챗토'의 입장에서, 두 사람의 현재 관계를 긍정적으로 요약하고 응원하는 3~4문장의 따뜻한 상담 메시지와, '썸' 관계 발전을 위한 1~2문장의 실용적인 팁을 작성해주세요.
+
+        
+
+        --- [출력 형식] ---
+        썸 지수: [숫자]
+        전반적인 코멘트: [코멘트 문장 1, 코멘트 문장 2]
+        ###
+        이름 A: [A의 실제 이름]
+        이름 B: [B의 실제 이름]
+        A->B 호감도: [숫자]
+        B->A 호감도: [숫자]
+        A의 특징: [특징1, 특징2, 특징3]
+        B의 특징: [특징1, 특징2, 특징3]
+        호감도 요약: [2-3 문장 요약]
+        ###
+        말투 점수: [숫자]
+        말투 설명: [한 줄 설명]
+        말투 예시: [실제 대화 예시]
+        감정표현 점수: [숫자]
+        감정표현 설명: [한 줄 설명]
+        감정표현 예시: [실제 대화 예시]
+        호칭 점수: [숫자]
+        호칭 설명: [한 줄 설명]
+        호칭 예시: [실제 대화 예시]
+        ###
+        A 평균 답장 시간(분): [숫자]
+        B 평균 답장 시간(분): [숫자]
+        A 답장 특징: [한 줄 설명]
+        B 답장 특징: [한 줄 설명]
+        ###
+        A 약속 제안 횟수: [숫자]
+        B 약속 제안 횟수: [숫자]
+        A 약속 제안 특징: [한 줄 설명]
+        B 약속 제안 특징: [한 줄 설명]
+        A 약속 제안 예시: [실제 대화 예시]
+        B 약속 제안 예시: [실제 대화 예시]
+        ###
+        A 주제 시작 비율(%): [숫자]
+        B 주제 시작 비율(%): [숫자]
+        A 주제 시작 특징: [한 줄 설명]
+        B 주제 시작 특징: [한 줄 설명]
+        A 주제 시작 예시: [실제 대화 예시]
+        B 주제 시작 예시: [실제 대화 예시]
+        ### 
+        A 평균 메시지 길이: [숫자]
+        B 평균 메시지 길이: [숫자]
+        A 메시지 특징: [한 줄 설명]
+        B 메시지 특징: [한 줄 설명]
+        A 메시지 예시: [실제 대화 예시]
+        B 메시지 예시: [실제 대화 예시]
+        ###
+        대화 패턴 분석: ["요약 문장 1", "요약 문장 2"]
+        ###
+        챗토의 연애상담: [상담 문장 1, 상담 문장 2, 상담 문장 3]
+        챗토의 연애상담 팁: [팁 문장 1, 팁 문장 2]
+        
+
+        --- [카카오톡 대화 내용] ---
+        {chat_sample}
+        --- [분석 시작] ---
         """
 
-        # 최종 결과를 담을 딕셔너리
-        final_results = {}
+        response = client.models.generate_content(
+            model='gemini-2.0-flash', contents=[prompt]
+        )
+        response_text = response.text
 
-        # 각 분석 함수를 순차적으로 호출하고 결과를 병합
-        analysis_functions = [
-            analyze_main_score,
-            analyze_likability,
-            analyze_conversation_style,
-            analyze_reply_pattern,
-            analyze_appointment_proposal,
-            analyze_conversation_lead,
-            analyze_message_length,
-            get_final_counseling,
-        ]
-
-        for func in analysis_functions:
-            try:
-                # 각 함수는 client, prompt_base, chat_content_sample을 인자로 받습니다.
-                result_part = func(client, prompt_base, chat_content_sample)
-                final_results.update(result_part)
-            except Exception as e:
-                print(f"'{func.__name__}' 분석 중 에러 발생: {e}")
-                # 특정 부분에서 에러가 나도 계속 진행하거나, 여기서 중단할 수 있습니다.
-                # 예: return {"error_message": f"'{func.__name__}' 분석 중 오류 발생"}
-
-        final_results["num_chat"] = num_chat
-        
-        return final_results
+        results = {
+            "score_main": parse_response(r"썸 지수:\s*(\d+)", response.text, is_int=True),
+            "comment_main": parse_response(r"전반적인 코멘트:\s*(.+)", response.text),
+            "name_A": parse_response(r"이름 A:\s*(.+)", response.text),
+            "name_B": parse_response(r"이름 B:\s*(.+)", response.text),
+            "score_A": parse_response(r"A->B 호감도:\s*(\d+)", response.text, is_int=True),
+            "score_B": parse_response(r"B->A 호감도:\s*(\d+)", response.text, is_int=True),
+            "trait_A": parse_response(r"A의 특징:\s*(.+)", response.text),
+            "trait_B": parse_response(r"B의 특징:\s*(.+)", response.text),
+            "summary": parse_response(r"호감도 요약:\s*(.+)", response.text),
+            
+            "tone_score": parse_response(r"말투 점수:\s*(\d+)", response.text, is_int=True),
+            "tone_desc": parse_response(r"말투 설명:\s*(.+)", response.text),
+            "tone_ex": parse_response(r"말투 예시:\s*(.+)", response.text),
+            "emo_score": parse_response(r"감정표현 점수:\s*(\d+)", response.text, is_int=True),
+            "emo_desc": parse_response(r"감정표현 설명:\s*(.+)", response.text),
+            "emo_ex": parse_response(r"감정표현 예시:\s*(.+)", response.text),
+            "addr_score": parse_response(r"호칭 점수:\s*(\d+)", response.text, is_int=True),
+            "addr_desc": parse_response(r"호칭 설명:\s*(.+)", response.text),
+            "addr_ex": parse_response(r"호칭 예시:\s*(.+)", response.text),
+            "reply_A": parse_response(r"A 평균 답장 시간\(분\):\s*(\d+)", response.text, is_int=True),
+            "reply_B": parse_response(r"B 평균 답장 시간\(분\):\s*(\d+)", response.text, is_int=True),
+            "reply_A_desc": parse_response(r"A 답장 특징:\s*(.+)", response.text),
+            "reply_B_desc": parse_response(r"B 답장 특징:\s*(.+)", response.text),
+            "rec_A": parse_response(r"A 약속 제안 횟수:\s*(\d+)", response.text, is_int=True),
+            "rec_B": parse_response(r"B 약속 제안 횟수:\s*(\d+)", response.text, is_int=True),
+            "rec_A_desc": parse_response(r"A 약속 제안 특징:\s*(.+)", response.text),
+            "rec_B_desc": parse_response(r"B 약속 제안 특징:\s*(.+)", response.text),
+            "rec_A_ex": parse_response(r"A 약속 제안 예시:\s*(.+)", response.text),
+            "rec_B_ex": parse_response(r"B 약속 제안 예시:\s*(.+)", response.text),
+            "atti_A": parse_response(r"A 주제 시작 비율\(%\):\s*(\d+)", response.text, is_int=True),
+            "atti_B": parse_response(r"B 주제 시작 비율\(%\):\s*(\d+)", response.text, is_int=True),
+            "atti_A_desc": parse_response(r"A 주제 시작 특징:\s*(.+)", response.text),
+            "atti_B_desc": parse_response(r"B 주제 시작 특징:\s*(.+)", response.text),
+            "atti_A_ex": parse_response(r"A 주제 시작 예시:\s*(.+)", response.text),
+            "atti_B_ex": parse_response(r"B 주제 시작 예시:\s*(.+)", response.text),
+            "len_A": parse_response(r"A 평균 메시지 길이:\s*(\d+)", response.text, is_int=True),
+            "len_B": parse_response(r"B 평균 메시지 길이:\s*(\d+)", response.text, is_int=True),
+            "len_A_desc": parse_response(r"A 메시지 특징:\s*(.+)", response.text),
+            "len_B_desc": parse_response(r"B 메시지 특징:\s*(.+)", response.text),
+            "len_A_ex": parse_response(r"A 메시지 예시:\s*(.+)", response.text),
+            "len_B_ex": parse_response(r"B 메시지 예시:\s*(.+)", response.text),
+            "pattern_analysis": parse_response(r"대화 패턴 분석:\s*(.+)", response.text),
+            "chatto_counsel": parse_response(r"챗토의 연애상담:\s*(.+)", response.text),
+            "chatto_counsel_tips": parse_response(r"챗토의 연애상담 팁:\s*(.+)", response.text),
+            "num_chat": num_chat
+        }
+        return results
 
     except Exception as e:
         print(f"Gemini로 종합 분석 중 에러 발생: {e}")
