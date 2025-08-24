@@ -405,8 +405,12 @@ class PlayChatChemAnalyzeView(APIView):
             topic4_ratio=chem_results.get("topic4_ratio", 0),
             topicelse_ratio=chem_results.get("topicelse_ratio", 0),
             chatto_analysis=chem_results.get("chatto_analysis", ""),
-            chatto_levelup=chem_results.get("chatto_levelup", ""),
-            chatto_levelup_tips=chem_results.get("chatto_levelup_tips", ""),
+            chatto_levelup1=chem_results.get("chatto_levelup1", ""),
+            chatto_levelup_tips1=chem_results.get("chatto_levelup_tips1", ""),
+            chatto_levelup2=chem_results.get("chatto_levelup2", ""),
+            chatto_levelup_tips2=chem_results.get("chatto_levelup_tips2", ""),
+            chatto_levelup3=chem_results.get("chatto_levelup3", ""),
+            chatto_levelup_tips3=chem_results.get("chatto_levelup_tips3", ""),
             name_0=chem_results.get("name_0", ""),
             name_1=chem_results.get("name_1", ""),
             name_2=chem_results.get("name_2", ""),
@@ -678,7 +682,7 @@ class PlayChatMBTIAnalyzeView(APIView):
         }
 
         # 각 참여자별 분석 결과를 ResultPlayMBTISpecPersonal에 저장
-        for person_data in mbti_results[:-1]:
+        for person_data in mbti_results:
             ResultPlayMBTISpecPersonal.objects.create(
                 spec=spec,
                 name=person_data.get("name", ""),
@@ -1353,7 +1357,7 @@ def generate_ChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
         {spec.topic3}가 {spec.topic3_ratio}%, {spec.topic4}가 {spec.topic4_ratio}%입니다.
         
         종합적인 사람들 간의 분석 결과는 {spec.chatto_analysis}입니다.
-        케미를 더 올리기 위한 분석과 팁은 {spec.chatto_levelup}, {spec.chatto_levelup_tips}입니다.
+        케미를 더 올리기 위한 분석과 팁은 {spec.chatto_levelup1}, {spec.chatto_levelup_tips1}, {spec.chatto_levelup2}, {spec.chatto_levelup_tips2}, {spec.chatto_levelup3}, {spec.chatto_levelup_tips3}입니다.
 
         당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 10개를 생성해야 합니다.
         이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.

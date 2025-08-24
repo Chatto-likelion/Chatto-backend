@@ -32,14 +32,13 @@ def count_chat_participants_with_gemini(file_path: str) -> int:
     try:
         # 파일이 매우 클 경우를 대비해 앞부분 일부만 읽는 것이 효율적입니다.
         with open(file_path, "r", encoding="utf-8") as f:
-            # 여기서는 최대 500줄만 읽도록 제한 (성능 및 비용 최적화)
             lines = f.readlines()
-            chat_content_sample = "".join(lines[:500])
+            chat_content_sample = "".join(lines)
 
         # Gemini API 클라이언트 초기화
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-2.5-flash',
             contents=[
                 "당신은 카카오톡 채팅 로그 분석 전문가입니다. \
                 주어진 채팅 내용에서 고유한 참여자(사람 이름)가 총 몇 명인지 세어주세요. \
@@ -167,6 +166,7 @@ def contrib_analysis_with_gemini(client: genai.Client, chat: ChatBus, analysis_o
                 -   `문제 해결 점수 (probsolve)`: 문제 상황에서 해결책이나 대안을 제시하는 기여도.
                 -   `의견/아이디어 제시 점수 (proposal)`: 새로운 아이디어나 의견을 제시하는 기여도.
                 -   `응답 속도 점수 (resptime)`: 다른 사람의 메시지에 얼마나 빠르고 적극적으로 반응하는지.
+                -   `개인 분석 요약 (analysis)`: 각 참여자의 기여도에 대한 1 문장 요약.
                 -   `담당자 유형 (type)`: 분석을 바탕으로 각 참여자를 '주도형', '분석형', '아이디어형', '지원형', '관망형' 중 하나로 분류.
             -   모든 점수를 합산하여 `종합 순위 (rank)`를 매깁니다.
 

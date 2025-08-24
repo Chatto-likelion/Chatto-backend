@@ -32,14 +32,13 @@ def count_chat_participants_with_gemini(file_path: str) -> int:
     try:
         # 파일이 매우 클 경우를 대비해 앞부분 일부만 읽는 것이 효율적입니다.
         with open(file_path, "r", encoding="utf-8") as f:
-            # 여기서는 최대 500줄만 읽도록 제한 (성능 및 비용 최적화)
             lines = f.readlines()
-            chat_content_sample = "".join(lines[:500])
+            chat_content_sample = "".join(lines)
 
         # Gemini API 클라이언트 초기화
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-2.5-flash',
             contents=[
                 "당신은 카카오톡 채팅 로그 분석 전문가입니다. \
                 주어진 채팅 내용에서 고유한 참여자(사람 이름)가 총 몇 명인지 세어주세요. \
@@ -67,6 +66,7 @@ def parse_response(pattern, text, is_int=False):
         return 0 if is_int else ""
     
     value = match.group(1).strip()
+    value = strip_helper(value)
     return int(value) if is_int else value
 
 def filter_chat_by_date(lines: list, analysis_option: dict) -> tuple[list, int]:
@@ -110,6 +110,31 @@ def filter_chat_by_date(lines: list, analysis_option: dict) -> tuple[list, int]:
 
     # 필터링된 라인 리스트와 그 길이를 튜플로 반환
     return filtered_lines, len(filtered_lines)
+
+def strip_helper(text: str) -> str:
+    """
+    문자열에서 불필요한 부분들을 제거합니다.
+    1. 앞뒤의 마크다운 코드 블록(```)
+    2. 대괄호([])와 그 안의 내용 (이름, 시간 등)
+    3. 앞뒤의 불필요한 기호(따옴표, 공백 등)
+    """
+    # 1. '```json', '```' 등 코드 블록 제거
+    cleaned_text = re.sub(r'^```[\w]*\n', '', text)
+    cleaned_text = re.sub(r'\n```$', '', cleaned_text)
+
+    # 2. (추가된 기능) 대괄호([])와 그 안의 내용 제거
+    # [사람1]
+    cleaned_text = re.sub(r'\[.*?\]', '', cleaned_text)
+
+    # 3. 양 끝에 남은 공백, 따옴표(`'`, `"`), 백틱(`)을 모두 제거
+    chars_to_strip = "\"'` "
+    cleaned_text = cleaned_text.strip(chars_to_strip)
+
+    # 4. (선택) 여러 개의 공백을 하나로 합치기
+    cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
+
+    return cleaned_text
+
 
 # ------------------------- some AI helper function ------------------------- #
 # --- 분석 단위별 함수 (Analysis-Specific Functions) ---
@@ -481,7 +506,7 @@ def mbti_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         # 각 참여자별로 분석을 반복하고, 명확한 구분자(--- PERSON ANALYSIS ---)를 사용하도록 지시합니다.
         prompt = f"""
         당신은 대화 내용을 기반으로 MBTI를 분석하는 심리 분석 전문가입니다.
-        주어진 카카오톡 대화 내용을 분석하여, 대화의 주요 참여자 전원의 정보를 예측해주세요.
+        주어진 카카오톡 대화 내용을 분석하여, {chat.people_num}명의 대화의 참여자 전원의 정보를 예측해주세요.
 
         각 참여자에 대해 다음 항목들을 분석하고, 반드시 지정된 출력 형식에 맞춰 작성해야 합니다.
         1.  이름: 대화에서 사용된 참여자의 이름을 정확히 기재해주세요.
@@ -625,7 +650,7 @@ def chem_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         5.  **응답 패턴**: 그룹의 평균 답장 시간(분), 즉각 응답률(%), 그리고 답을 받지 못하고 묻힌 메시지 비율(%)을 추정하고, 응답 패턴에 대한 종합 분석을 1-2문장으로 요약해주세요.
         6.  **주요 토픽**: 대화에서 가장 많이 언급된 상위 4개 토픽과 각 토픽의 비율(%)을 분석해주세요.
         7.  **상호작용 매트릭스**: 위에서 식별한 {size}명의 참여자 간 상호작용 점수(0~100)를 계산해주세요. A가 B에게 보낸 메시지의 긍정성, 응답률 등을 종합하여 점수를 매깁니다.
-        8.  **챗토의 종합 솔루션**: 그룹의 현재 상태를 진단하고, 관계를 더 좋게 만들기 위한 솔루션의 제목과 구체적인 팁을 작성해주세요.
+        8.  **챗토의 종합 솔루션**: 그룹의 현재 상태를 진단하고, 관계를 더 좋게 만들기 위한 구체적인 팁 3개를 작성해주세요.
 
         --- [출력 형식] ---
         전체 케미 점수: [숫자]
@@ -679,8 +704,12 @@ def chem_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         상호작용 매트릭스: [참여자1-참여자2: 점수, 참여자1-참여자3: 점수, ...]
         ###
         챗토의 종합 분석: [그룹 관계 진단]
-        챗토의 관계 레벨업: [솔루션 제목]
-        챗토의 관계 레벨업 팁: [구체적인 팁]
+        챗토의 관계 레벨업 1: [솔루션 제목]
+        챗토의 관계 레벨업 팁 1: [구체적인 팁]
+        챗토의 관계 레벨업 2: [솔루션 제목]
+        챗토의 관계 레벨업 팁 2: [구체적인 팁]
+        챗토의 관계 레벨업 3: [솔루션 제목]
+        챗토의 관계 레벨업 팁 3: [구체적인 팁]
 
         --- [카카오톡 대화 내용] ---
         {chat_content_sample}
@@ -746,8 +775,12 @@ def chem_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
             "topic4_ratio": parse_response(r"주요 토픽 4 비율\(%\):\s*(\d+)", response_text, is_int=True),
             "topicelse_ratio": parse_response(r"기타 토픽 비율\(%\):\s*(\d+)", response_text, is_int=True),
             "chatto_analysis": parse_response(r"챗토의 종합 분석:\s*(.+)", response_text),
-            "chatto_levelup": parse_response(r"챗토의 관계 레벨업:\s*(.+)", response_text),
-            "chatto_levelup_tips": parse_response(r"챗토의 관계 레벨업 팁:\s*(.+)", response_text),
+            "chatto_levelup1": parse_response(r"챗토의 관계 레벨업 1:\s*(.+)", response_text),
+            "chatto_levelup_tips1": parse_response(r"챗토의 관계 레벨업 팁 1:\s*(.+)", response_text),
+            "chatto_levelup2": parse_response(r"챗토의 관계 레벨업 2:\s*(.+)", response_text),
+            "chatto_levelup_tips2": parse_response(r"챗토의 관계 레벨업 팁 2:\s*(.+)", response_text),
+            "chatto_levelup3": parse_response(r"챗토의 관계 레벨업 3:\s*(.+)", response_text),
+            "chatto_levelup_tips3": parse_response(r"챗토의 관계 레벨업 팁 3:\s*(.+)", response_text),
             "interaction_matrix": interaction_matrix, # 파싱된 딕셔너리
             "num_chat": num_chat
         }
