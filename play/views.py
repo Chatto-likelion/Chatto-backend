@@ -99,7 +99,7 @@ from django.conf import settings
 
 from .utils import (
     extract_chat_title,
-    count_chat_participants_with_gemini,
+    count_chat_participants,
     some_analysis_with_gemini,
     mbti_analysis_with_gemini,
     chem_analysis_with_gemini,
@@ -154,7 +154,7 @@ class PlayChatView(APIView):
             chat.title = extract_chat_title(file_path)
 
             # 2. Gemini API를 호출하여 인원 수 계산
-            num_of_people = count_chat_participants_with_gemini(file_path)
+            num_of_people = count_chat_participants(file_path)
             chat.people_num = num_of_people
             
             # 3. 변경된 제목과 인원 수를 함께 DB에 최종 저장
@@ -325,7 +325,6 @@ class PlayChatChemAnalyzeView(APIView):
         analysis_start = serializer.validated_data["analysis_start"]
         analysis_end = serializer.validated_data["analysis_end"]
 
-        print(analysis_start, analysis_end)
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
             if chat.user != author:
@@ -405,8 +404,12 @@ class PlayChatChemAnalyzeView(APIView):
             topic4_ratio=chem_results.get("topic4_ratio", 0),
             topicelse_ratio=chem_results.get("topicelse_ratio", 0),
             chatto_analysis=chem_results.get("chatto_analysis", ""),
-            chatto_levelup=chem_results.get("chatto_levelup", ""),
-            chatto_levelup_tips=chem_results.get("chatto_levelup_tips", ""),
+            chatto_levelup1=chem_results.get("chatto_levelup1", ""),
+            chatto_levelup_tips1=chem_results.get("chatto_levelup_tips1", ""),
+            chatto_levelup2=chem_results.get("chatto_levelup2", ""),
+            chatto_levelup_tips2=chem_results.get("chatto_levelup_tips2", ""),
+            chatto_levelup3=chem_results.get("chatto_levelup3", ""),
+            chatto_levelup_tips3=chem_results.get("chatto_levelup_tips3", ""),
             name_0=chem_results.get("name_0", ""),
             name_1=chem_results.get("name_1", ""),
             name_2=chem_results.get("name_2", ""),
@@ -678,7 +681,7 @@ class PlayChatMBTIAnalyzeView(APIView):
         }
 
         # 각 참여자별 분석 결과를 ResultPlayMBTISpecPersonal에 저장
-        for person_data in mbti_results[:-1]:
+        for person_data in mbti_results:
             ResultPlayMBTISpecPersonal.objects.create(
                 spec=spec,
                 name=person_data.get("name", ""),
@@ -1353,9 +1356,10 @@ def generate_ChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
         {spec.topic3}가 {spec.topic3_ratio}%, {spec.topic4}가 {spec.topic4_ratio}%입니다.
         
         종합적인 사람들 간의 분석 결과는 {spec.chatto_analysis}입니다.
-        케미를 더 올리기 위한 분석과 팁은 {spec.chatto_levelup}, {spec.chatto_levelup_tips}입니다.
+        케미를 더 올리기 위한 분석과 팁은 {spec.chatto_levelup1}, {spec.chatto_levelup_tips1}, {spec.chatto_levelup2}, {spec.chatto_levelup_tips2}, {spec.chatto_levelup3}, {spec.chatto_levelup_tips3}입니다.
 
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 10개를 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 10개를 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
         문제1: [문제 내용]
@@ -2381,7 +2385,8 @@ def generate_OneChemQuiz(result: ResultPlayChem, client: genai.Client) -> dict:
         종합적인 사람들 간의 분석 결과는 {spec.chatto_analysis}입니다.
         케미를 더 올리기 위한 분석과 팁은 {spec.chatto_levelup}, {spec.chatto_levelup_tips}입니다.
 
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 1개를 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 케미 퀴즈 1개를 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
         문제: [문제 내용]
@@ -2553,7 +2558,9 @@ def generate_SomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
         {spec.chatto_counsel}
         {spec.chatto_counsel_tips}
 
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
+        문제에 사람의 이름이 들어가는 경우, 반드시 {spec.name_A}, {spec.name_B}중에서만 사용해야 합니다.
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
@@ -3550,6 +3557,8 @@ def generate_OneSomeQuiz(result: ResultPlaySome, client: genai.Client) -> dict:
         {spec.chatto_counsel_tips}
 
         당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 1개 생성해야 합니다:
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
+        문제에 사람의 이름이 들어가는 경우, 반드시 {spec.name_A}, {spec.name_B}중에서만 사용해야 합니다.
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
@@ -3726,7 +3735,8 @@ def generate_MBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
 
         개인별 분석 결과:{[r for r in personal_results]}
         
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 10개 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 
@@ -4727,7 +4737,8 @@ def generate_OneMBTIQuiz(result: ResultPlayMBTI, client: genai.Client) -> dict:
 
         개인별 분석 결과:{[r for r in personal_results]}
         
-        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 1개 생성해야 합니다:
+        당신은 지금까지 제공된 위의 정보를 바탕으로 다음과 같은 썸 퀴즈를 1개 생성해야 합니다.
+        이때, 질문과 선택지는 모두 서로 중복되지 않아야 하며, 문법, 철자, 구두점 오류 없이 답변해주세요. 특히 이름 뒤에 들어가는 조사를 꼭 맞게 사용해주세요.
 
         당신의 응답은 다음과 반드시 같은 형식을 따라야 합니다:
 

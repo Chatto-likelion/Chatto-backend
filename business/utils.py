@@ -23,43 +23,32 @@ def extract_chat_title(path: str) -> str:
         # “님과” 패턴이 없으면 줄 전체를 리턴하거나 빈 문자열
         return first_line
 
-def count_chat_participants_with_gemini(file_path: str) -> int:
+def count_chat_participants(file_path: str) -> int:
     """
-    Gemini API를 사용해 채팅 로그 파일의 참여 인원 수를 계산합니다.
-    - file_path: 분석할 채팅 파일의 절대 경로
-    - 반환값: 계산된 인원 수 (정수)
+    채팅 파일(.txt)을 읽어 참여자 수를 계산하는 함수입니다.
+
+    Args:
+        file_path (str): 분석할 채팅 파일의 경로
+
+    Returns:
+        int: 중복을 제외한 총 참여자 수
     """
+    participants = set()  # 중복을 허용하지 않는 set 자료구조 사용
+
     try:
-        # 파일이 매우 클 경우를 대비해 앞부분 일부만 읽는 것이 효율적입니다.
-        with open(file_path, "r", encoding="utf-8") as f:
-            # 여기서는 최대 500줄만 읽도록 제한 (성능 및 비용 최적화)
-            lines = f.readlines()
-            chat_content_sample = "".join(lines[:500])
-
-        # Gemini API 클라이언트 초기화
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=[
-                "당신은 카카오톡 채팅 로그 분석 전문가입니다. \
-                주어진 채팅 내용에서 고유한 참여자(사람 이름)가 총 몇 명인지 세어주세요. \
-                아래 채팅 내용을 보고, 다른 부가적인 설명은 일절 하지 말고, 오직 최종 인원 수를 나타내는 정수 숫자만 답변해주세요."]
-            + [chat_content_sample]
-        )
-
-        # Gemini의 응답(e.g., "15" 또는 "총 15명")에서 숫자만 추출하여 정수로 변환
-        numbers = re.findall(r'\d+', response.text)
-        if numbers:
-            return int(numbers[0])
-        else:
-            # 숫자를 찾지 못한 경우 기본값 반환
-            return 1
-
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                # 정규 표현식을 사용하여 '[이름]' 형식을 찾습니다.
+                match = re.match(r'\[(.*?)\]', line)
+                if match:
+                    # 찾은 이름(괄호 안의 내용)을 set에 추가합니다.
+                    participants.add(match.group(1))
+    except FileNotFoundError:
+        return "파일을 찾을 수 없습니다. 경로를 확인해주세요."
     except Exception as e:
-        # API 호출 실패, 응답 파싱 실패 등 예외 발생 시
-        print(f"Gemini로 인원 수 분석 중 에러 발생: {e}")
-        # 기본값 혹은 에러 처리에 맞는 값을 반환합니다. 여기서는 1을 반환.
-        return 1
+        return f"파일을 읽는 중 오류가 발생했습니다: {e}"
+
+    return len(participants)
     
 def parse_response(pattern, text, is_int=False):
     match = re.search(pattern, text)
@@ -67,6 +56,7 @@ def parse_response(pattern, text, is_int=False):
         return 0 if is_int else ""
     
     value = match.group(1).strip()
+    value = strip_helper(value)
     return int(value) if is_int else value
 
 def filter_chat_by_date(lines: list, analysis_option: dict) -> tuple[list, int]:
@@ -110,6 +100,33 @@ def filter_chat_by_date(lines: list, analysis_option: dict) -> tuple[list, int]:
 
     # 필터링된 라인 리스트와 그 길이를 튜플로 반환
     return filtered_lines, len(filtered_lines)
+
+def strip_helper(cleaned_text: str) -> str:
+    """
+    문자열에서 불필요한 부분들을 제거합니다.
+    1. 앞뒤의 마크다운 코드 블록(```)
+    2. 대괄호([])와 그 안의 내용 (이름, 시간 등)
+    3. 앞뒤의 불필요한 기호(따옴표, 공백 등)
+    """
+    # 1. '```json', '```' 등 코드 블록 제거
+    # cleaned_text = re.sub(r'^```[\w]*\n', '', cleaned_text)
+    # cleaned_text = re.sub(r'\n```$', '', cleaned_text)
+
+    # 2. [사람 이름] [시간] 이 연속된 헤더가 있을 경우 제거
+    cleaned_text = re.sub(r'^\[.*?\]\s*\[.*?\]\s*', '', cleaned_text)
+
+    # 3. 양 끝에 남은 공백, 백틱(`)을 모두 제거
+    chars_to_strip = "` "
+    previous_text = ""
+    while cleaned_text != previous_text:
+        previous_text = cleaned_text
+        cleaned_text = cleaned_text.strip(chars_to_strip)
+
+    # 4. (선택) 여러 개의 공백을 하나로 합치기
+    # cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
+
+    return cleaned_text
+
 
 def contrib_analysis_with_gemini(client: genai.Client, chat: ChatBus, analysis_option: dict) -> dict:
     """
@@ -167,6 +184,7 @@ def contrib_analysis_with_gemini(client: genai.Client, chat: ChatBus, analysis_o
                 -   `문제 해결 점수 (probsolve)`: 문제 상황에서 해결책이나 대안을 제시하는 기여도.
                 -   `의견/아이디어 제시 점수 (proposal)`: 새로운 아이디어나 의견을 제시하는 기여도.
                 -   `응답 속도 점수 (resptime)`: 다른 사람의 메시지에 얼마나 빠르고 적극적으로 반응하는지.
+                -   `개인 분석 요약 (analysis)`: 각 참여자의 기여도에 대한 1 문장 요약.
                 -   `담당자 유형 (type)`: 분석을 바탕으로 각 참여자를 '주도형', '분석형', '아이디어형', '지원형', '관망형' 중 하나로 분류.
             -   모든 점수를 합산하여 `종합 순위 (rank)`를 매깁니다.
 
