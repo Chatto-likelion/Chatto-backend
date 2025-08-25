@@ -159,7 +159,10 @@ def some_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
 
         # 프롬프트 정보
         prompt = f"""
-        당신은 연애 상담 및 카카오톡 대화 분석 전문가 '챗토'입니다.
+        당신은 연애 상담 및 카카오톡 대화 분석 전문가 'Chatto'입니다.
+        사람들의 이목을 충분히 끌만큼 유쾌하고 자극적인 분석을 제공해주세요.
+        이모티콘이나 비유를 활용하여 더욱 풍부한 표현을 사용해주세요.
+        딱딱한 말투가 아닌 친근하고 위트있는 말투로 작성해주세요.
 
         [분석 요청 정보]
         - 나이대: {age_info}
@@ -168,6 +171,7 @@ def some_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         [당신의 임무]
         요청자가 제시한 관계에 편향되지 말고, 주어진 대화 내용만을 근거로 두 사람의 관계를 **매우 객관적으로 분석**해야 합니다.
         아래의 모든 분석 항목에 대해, 반드시 지정된 출력 형식에 맞춰 결과를 작성해주세요.
+        출력 결과에 'A'와 'B' 말고 반드시 대응되는 상대방의 '이름 A'와 '이름 B'로 포함시켜야 합니다.
 
         [분석 항목]
         1.  **주요 분석**: '썸'의 온도 점수를 0~100점 사이의 '썸 지수'로 평가하고, 전반적인 상황에 대한 1~2 문장의 코멘트를 작성해주세요.
@@ -336,7 +340,10 @@ def mbti_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         # Gemini에게 보낼 프롬프트입니다.
         # 각 참여자별로 분석을 반복하고, 명확한 구분자(--- PERSON ANALYSIS ---)를 사용하도록 지시합니다.
         prompt = f"""
-        당신은 대화 내용을 기반으로 MBTI를 분석하는 심리 분석 전문가입니다.
+        당신은 카카오톡 대화 내용을 기반으로 MBTI를 분석하는 심리 분석 전문가 'Chatto' 입니다.
+        사람들의 이목을 충분히 끌만큼 유쾌하고 자극적인 분석을 제공해주세요.
+        이모티콘이나 비유를 활용하여 더욱 풍부한 표현을 사용해주세요.
+        딱딱한 말투가 아닌 친근하고 위트있는 말투로 작성해주세요.
         주어진 카카오톡 대화 내용을 분석하여, {chat.people_num}명의 대화의 참여자 전원의 정보를 예측해주세요.
 
         각 참여자에 대해 다음 항목들을 분석하고, 반드시 지정된 출력 형식에 맞춰 작성해야 합니다.
@@ -363,13 +370,13 @@ def mbti_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         style: [#키워드1, #키워드2, #키워드3]
         moment_desc: [대표 모먼트에 대한 한 문장 설명]
         moment_ex: [가장 대표적인 실제 대화 예시]
-        momentIE_desc: [내향/외향 판단 근거]
+        momentIE_desc: [내향/외향 판단 이유]
         momentIE_ex: [실제 대화 예시]
-        momentSN_desc: [감각/직관 판단 근거]
+        momentSN_desc: [감각/직관 판단 이유]
         momentSN_ex: [실제 대화 예시]
-        momentFT_desc: [감정/사고 판단 근거]
+        momentFT_desc: [감정/사고 판단 이유]
         momentFT_ex: [실제 대화 예시]
-        momentJP_desc: [판단/인식 판단 근거]
+        momentJP_desc: [판단/인식 판단 이유]
         momentJP_ex: [실제 대화 예시]
 
         --- CHAT LOG ---
@@ -462,7 +469,10 @@ def chem_analysis_with_gemini(chat: ChatPlay, client: genai.Client, analysis_opt
         size = 5 if people_num >= 5 else people_num
 
         prompt = f"""
-        당신은 그룹 커뮤니케이션 및 관계 분석 전문가 '챗토'입니다.
+        당신은 그룹 커뮤니케이션 및 관계 분석 전문가 'Chatto'입니다.
+        사람들의 이목을 충분히 끌만큼 유쾌하고 자극적인 분석을 제공해주세요.
+        이모티콘이나 비유를 활용하여 더욱 풍부한 표현을 사용해주세요.
+        딱딱한 말투가 아닌 친근하고 위트있는 말투로 작성해주세요.
 
         [분석 요청 정보]
         - 참여자 수: {people_num}명
