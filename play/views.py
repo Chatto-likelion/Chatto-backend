@@ -325,7 +325,6 @@ class PlayChatChemAnalyzeView(APIView):
         analysis_start = serializer.validated_data["analysis_start"]
         analysis_end = serializer.validated_data["analysis_end"]
 
-        print(analysis_start, analysis_end)
         try:
             chat = ChatPlay.objects.get(chat_id=chat_id)
             if chat.user != author:
